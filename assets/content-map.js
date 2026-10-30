@@ -60,7 +60,7 @@ window.COFFEE_CONTENT_MAP = [
   { id: 'store', name: '商店頁面', sources: [], edit: [['shop.html', '咖啡選購'], ['treats.html', '點心'], ['subscribe.html', '月費訂購'], ['checkout.html', '購物車']], note: '各商店頁最上方的標題與介紹。商品本身請到「商品管理」「點心管理」修改。', groups: [
     { title: '咖啡選購', items: [['shop.kicker', '英文小標', 'ROASTED COFFEE COLLECTION'], ['shop.title', '標題', '選一款，喜歡的風味。']] },
     { title: '點心', items: [['treats.kicker', '英文小標', 'HANDMADE TREATS'], ['treats.title', '標題', '配一口，剛剛好的甜。'], ['treats.intro', '介紹', '手作小點，與咖啡最好的相遇。\n點心為新鮮製作，下單後約 3–5 天出貨，請盡早享用。']] },
-    { title: '月費訂購', items: [['subscribe.kicker', '英文小標', 'COFFEE SUBSCRIPTION'], ['subscribe.title', '標題', '讓好咖啡，按時來找你。'], ['subscribe.intro', '介紹', '每月固定寄出當季精選，可隨時暫停或取消。所有方案皆免運。']] },
+    { title: '月費訂購', items: [['subscribe.kicker', '英文小標', 'COFFEE SUBSCRIPTION'], ['subscribe.title', '標題', '讓好咖啡，按時來找你。'], ['subscribe.intro', '介紹', '每月固定寄出當季精選，可隨時取消。所有方案皆免運。']] },
     { title: '購物車', items: [['checkout.kicker', '英文小標', 'YOUR COFFEE BAG'], ['checkout.title', '標題', '把喜歡的風味，帶回日常。'], ['checkout.intro', '介紹', '確認品項與配送方式，填好收件資料後前往綠界付款。']] }
   ] },
   { id: 'story.html', name: '品牌故事', sources: ['story.html'], groups: [

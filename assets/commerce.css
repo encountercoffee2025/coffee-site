@@ -66,3 +66,5 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .store-pick .secondary-button{padding:9px 16px;cursor:pointer}
 .store-pick .muted{font-size:12px}
 #checkout-form input[readonly]{background:#f6f2ea;cursor:default}
+.check-row{display:flex!important;align-items:center;gap:8px;grid-column:1/-1;font-size:14px}
+.check-row input{width:auto!important;margin:0}

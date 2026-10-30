@@ -108,6 +108,8 @@
     repay: (id, token) => callCheckout('POST', { action: 'pay', id, token }),
     orderStatus: (id, token) => callCheckout('GET', null, `?id=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`),
     paymentMode: () => callCheckout('GET', null, '?config'),
+    subscribe: input => callCheckout('POST', { action: 'subscribe', ...input }),
+    subscriptionStatus: (id, token) => callCheckout('GET', null, `?sub=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`),
     goPay
   };
 
@@ -171,6 +173,9 @@
       sb.from('orders').select('id,data,version').order('created_at', { ascending: false }).limit(1000)
     ]);
     if (mainError || ordersError) throw new Error((mainError || ordersError).message);
+    // 月費訂閱（只顯示已授權成功的訂閱；取消要透過伺服器通知綠界）
+    const { data: subs, error: subsError } = await sb.from('subscriptions').select('data').in('status', ['active', 'cancelled']).order('created_at', { ascending: false }).limit(1000);
+    if (!subsError) S.applySubscriptions(subs.map(x => x.data));
     if (main?.data) { S.applyCloud(main.data); catalogVersion = main.version; }
     synced = JSON.stringify(S.cloudCatalog());
     S.applyOrders(orders.map(o => o.data));
@@ -384,5 +389,13 @@
     try { setStatus('同步中…', 'busy'); await saveContent(next); setStatus('已同步雲端', 'ok'); toast('已儲存，客人重新整理頁面就會看到。'); renderContent(document.getElementById('admin-main')); }
     catch (err) { setStatus('雲端同步失敗', 'error'); toast('儲存失敗：' + err.message); if (button) button.disabled = false; }
   }
-  window.CoffeeCloud = { ...shared, client: sb, renderContent };
+  async function cancelSubscription(id) {
+    const { data } = await sb.auth.getSession();
+    const res = await fetch(CLOUD_URL + '/functions/v1/checkout', { method: 'POST', headers: { apikey: CLOUD_KEY, Authorization: 'Bearer ' + (data.session?.access_token || ''), 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel-subscription', id }) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || '取消失敗，請稍後再試');
+    await pull(); window.dispatchEvent(new CustomEvent('coffee:cloud'));
+    return json;
+  }
+  window.CoffeeCloud = { ...shared, client: sb, renderContent, cancelSubscription };
 })();

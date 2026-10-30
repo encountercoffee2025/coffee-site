@@ -21,15 +21,17 @@ const catalog = () => JSON.parse(JSON.stringify({ version: 3, products: seed.pro
 
 const STAGE = { merchantId: '3002607', hashKey: 'pwFHCqoQZGmho4w6', hashIV: 'EkRm7iFT261dpevs' };
 let tables, sent, failNextCatalogWrite;
-function reset() { tables = { site_state: [{ id: 'main', data: catalog(), version: 1 }], orders: [] }; sent = []; failNextCatalogWrite = false; }
+function reset() { tables = { site_state: [{ id: 'main', data: catalog(), version: 1 }], orders: [], subscriptions: [], admins: [{ user_id: '11111111-2222-3333-4444-555555555555' }] }; sent = []; failNextCatalogWrite = false; }
 
 // 假的 Supabase REST 與外部服務
 globalThis.fetch = async (url, init = {}) => {
   const u = new URL(url), method = init.method || 'GET';
   if (u.hostname === 'api.line.me' || u.hostname === 'api.resend.com') { sent.push({ host: u.hostname, body: JSON.parse(init.body) }); return new Response('{}', { status: 200 }); }
+  if (u.pathname === '/Cashier/CreditCardPeriodAction') { sent.push({ host: 'ecpay-cancel', body: Object.fromEntries(new URLSearchParams(init.body)) }); return new Response('MerchantID=3002607&RtnCode=1&RtnMsg=成功', { status: 200 }); }
+  if (u.pathname === '/auth/v1/user') { const ok = init.headers?.Authorization === 'Bearer admin-session'; return new Response(JSON.stringify(ok ? { id: '11111111-2222-3333-4444-555555555555' } : { msg: 'invalid' }), { status: ok ? 200 : 401 }); }
   const table = u.pathname.split('/').pop(), rows = tables[table];
   const filters = [...u.searchParams].filter(([k]) => k !== 'select');
-  const match = r => filters.every(([k, v]) => v.startsWith('eq.') ? String(r[k]) === v.slice(3) : v.startsWith('cs.') ? r[k].includes(v.slice(4, -1)) : false);
+  const match = r => filters.every(([k, v]) => v.startsWith('eq.') ? String(r[k]) === v.slice(3) : v.startsWith('cs.') ? r[k].includes(v.slice(4, -1)) : v.startsWith('in.(') ? v.slice(4, -1).split(',').includes(String(r[k])) : false);
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status });
   if (method === 'GET') return json(structuredClone(rows.filter(match)));
   if (method === 'POST') { const row = { version: 1, created_at: new Date().toISOString(), ...JSON.parse(init.body) }; if (rows.some(r => r.id === row.id)) return json({ message: 'duplicate' }, 409); rows.push(row); return json([row], 201); }
@@ -58,8 +60,9 @@ async function ecpay(params, type = 'notify', env = ENV) {
 const paidNotice = (tradeNo, amount, extra = {}) => ({ MerchantID: '3002607', MerchantTradeNo: tradeNo, RtnCode: '1', RtnMsg: '交易成功', TradeNo: '2510311234567890', TradeAmt: String(amount), PaymentDate: '2026/10/31 12:00:00', PaymentType: 'Credit_CreditCard', PaymentTypeChargeFee: '10', TradeDate: '2026/10/31 11:59:00', SimulatePaid: '0', CustomField1: '', CustomField2: '', CustomField3: '', CustomField4: '', StoreID: '', ...extra });
 
 await check('server copy of store.js matches the site', () => {
-  const { build } = createRequire(import.meta.url)('../scripts/sync-store.cjs');
+  const { build, buildPlans } = createRequire(import.meta.url)('../scripts/sync-store.cjs');
   assert.equal(fs.readFileSync(path.join(base, 'supabase/functions/_shared/store.js'), 'utf8'), build(), 'run: node scripts/sync-store.cjs');
+  assert.equal(fs.readFileSync(path.join(base, 'supabase/functions/_shared/plans.js'), 'utf8'), buildPlans(), 'run: node scripts/sync-store.cjs');
 });
 
 await check('create order: server prices, shipping and stock; signed ECPay form', async () => {
@@ -226,6 +229,108 @@ await check('production mode refuses to run without real ECPay keys', async () =
   const res = await post({ action: 'create', cart, customer, delivery: '711' }, { ...ENV, ECPAY_MODE: 'prod' });
   assert.equal(res.status, 400);
   assert.match((await res.json()).error, /金流尚未設定/);
+});
+
+
+// ── 月費訂購（定期定額）──
+const { loadStore } = await import('../supabase/functions/_shared/store.js');
+const memory = new Map();
+const SV = loadStore({ addEventListener() {}, dispatchEvent() {}, COFFEE_SEED: null, COFFEE_PLANS: [] }, { getItem: k => memory.get(k) ?? null, setItem: (k, v) => memory.set(k, v) }, class { constructor(t) { this.type = t } });
+const validState = () => SV.validate(JSON.parse(JSON.stringify({ ...catalog(), cart: [], orders: tables.orders.map(r => r.data), subscriptions: tables.subscriptions.filter(r => ['active', 'cancelled'].includes(r.status)).map(r => r.data) })));
+const subBody = (extra = {}) => ({ action: 'subscribe', planId: 'regular', cycle: '2', roast: 'medium', grind: 'pour', customer, delivery: '711', store: STORE, ...extra });
+const periodNotice = (sub, n, amount, extra = {}) => ({ MerchantID: '3002607', MerchantTradeNo: sub, RtnCode: '1', RtnMsg: '成功', PeriodType: 'M', Frequency: '2', ExecTimes: '99', Amount: String(amount), Gwsr: '123', ProcessDate: '2026/12/31 10:00:00', AuthCode: '777777', FirstAuthAmount: String(amount), TotalSuccessTimes: String(n), SimulatePaid: '0', ...extra });
+const setOpen = open => { tables.site_state[0].data.settings.subscriptionsOpen = open };
+
+await check('subscriptions stay closed until the admin opens them (or a private preview key is used)', async () => {
+  reset();
+  assert.equal((await post(subBody())).status, 403);
+  assert.equal((await post(subBody({ preview: 'wrong' }), { ...ENV, SUBSCRIPTION_PREVIEW_KEY: 'secret-preview' })).status, 403);
+  assert.equal((await post(subBody({ preview: 'secret-preview' }), { ...ENV, SUBSCRIPTION_PREVIEW_KEY: 'secret-preview' })).status, 200);
+  setOpen(true);
+  assert.equal((await post(subBody())).status, 200);
+  assert.equal((await (await get('?config')).json()).subscriptionsOpen, true);
+});
+
+await check('subscribe: plan price follows admin edits; ECPay recurring form (credit card, every 2 months, 99 times)', async () => {
+  reset(); setOpen(true);
+  tables.site_state.push({ id: 'content', data: { texts: {}, images: {}, plans: { regular: { price: 990, name: '常遇方案（新）' } } }, version: 1 });
+  const res = await post(subBody()), body = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(body));
+  assert.match(body.subscriptionId, /^SB\d{8}[A-Z0-9]{6}$/);
+  const f = body.payment.fields;
+  assert.deepEqual([f.TotalAmount, f.PeriodAmount, f.PeriodType, f.Frequency, f.ExecTimes, f.ChoosePayment, f.MerchantTradeNo], ['990', '990', 'M', '2', '99', 'Credit', body.subscriptionId]);
+  assert.equal(f.PeriodReturnURL, 'https://demo.supabase.co/functions/v1/ecpay?type=period');
+  assert.ok(f.ClientBackURL.endsWith(`/subscribe.html?sub=${body.subscriptionId}&t=${body.token}`));
+  assert.ok(await verifyMac(f, STAGE));
+  const sub = tables.subscriptions[0];
+  assert.equal(sub.status, 'pending'); assert.equal(sub.data.name, '常遇方案（新）'); assert.equal(sub.data.customer.address, '深坑門市（店號 131386）新北市深坑區北深路三段 1 號');
+  for (const [bad, pattern] of [[{ planId: 'nope' }, /方案/], [{ cycle: '3' }, /週期/], [{ roast: 'burnt' }, /烘焙度/], [{ store: null }, /門市/], [{ customer: { ...customer, email: 'x' } }, /電子信箱/]]) {
+    const r = await post(subBody(bad)); assert.equal(r.status, 400); assert.match((await r.json()).error, pattern);
+  }
+});
+
+await check('first authorization activates the subscription and creates period 1 shipping order (once)', async () => {
+  reset(); setOpen(true);
+  const { subscriptionId: id, token } = await (await post(subBody())).json();
+  assert.equal(await (await ecpay(paidNotice(id, 880), 'notify', NOTIFY_ENV)).text(), '1|OK');
+  const sub = tables.subscriptions[0];
+  assert.equal(sub.status, 'active'); assert.equal(sub.data.periods, 1);
+  assert.equal(tables.orders.length, 1);
+  const o = tables.orders[0].data;
+  assert.equal(o.payment, 'paid'); assert.equal(o.total, 880); assert.equal(o.shipping, 0); assert.equal(o.items[0].kind, 'plan');
+  assert.match(o.items[0].name, /常遇方案（第 1 期・每兩個月）/); assert.match(o.customerNote, /中焙・研磨：手沖研磨/);
+  assert.deepEqual(sent.map(s => s.host).sort(), ['api.line.me', 'api.resend.com']);
+  validState();
+  assert.equal(await (await ecpay(paidNotice(id, 880), 'notify', NOTIFY_ENV)).text(), '1|OK');
+  assert.equal(tables.orders.length, 1);
+  const back = await ecpay(paidNotice(id, 880), 'return');
+  assert.equal(back.headers.get('location'), `https://encountercoffee2025.com/subscribe.html?sub=${id}&t=${token}`);
+  const status = await (await get(`?sub=${id}&t=${token}`)).json();
+  assert.equal(status.subscription.status, 'active'); assert.equal(status.subscription.periods, 1);
+  assert.ok(!JSON.stringify(status).includes('buyer@example.com'));
+});
+
+await check('later periods: new order per successful charge, duplicates ignored, failures logged', async () => {
+  reset(); setOpen(true);
+  const { subscriptionId: id } = await (await post(subBody())).json();
+  await ecpay(paidNotice(id, 880));
+  const period = (n, extra) => ecpay(periodNotice(id, n, 880, extra), 'period');
+  assert.equal(await (await period(2)).text(), '1|OK');
+  assert.equal(await (await period(2)).text(), '1|OK');
+  assert.equal(tables.orders.length, 2);
+  assert.match(tables.orders.find(r => r.data.items[0].name.includes('第 2 期')).data.items[0].name, /第 2 期/);
+  await period(2, { RtnCode: '10100248', RtnMsg: '授權失敗' });
+  assert.equal(tables.orders.length, 2);
+  assert.ok(tables.subscriptions[0].data.history.some(h => h.text.includes('第 3 期扣款失敗')));
+  assert.equal(await (await ecpay({ ...periodNotice(id, 3, 880), CheckMacValue: 'BAD' }, 'period')).text(), '0|CheckMacValue Error');
+  assert.equal(tables.orders.length, 2);
+  validState();
+});
+
+await check('failed first authorization marks the subscription failed, no order', async () => {
+  reset(); setOpen(true);
+  const { subscriptionId: id } = await (await post(subBody())).json();
+  await ecpay({ ...paidNotice(id, 880), RtnCode: '10100058', RtnMsg: '付款失敗' });
+  assert.equal(tables.subscriptions[0].status, 'failed');
+  assert.equal(tables.orders.length, 0);
+});
+
+await check('cancel: admin only, tells ECPay to stop charging, later charges are flagged for refund', async () => {
+  reset(); setOpen(true);
+  const { subscriptionId: id } = await (await post(subBody())).json();
+  await ecpay(paidNotice(id, 880));
+  const cancel = auth => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { 'content-type': 'application/json', ...(auth ? { authorization: auth } : {}) }, body: JSON.stringify({ action: 'cancel-subscription', id }) }), ENV);
+  assert.equal((await cancel()).status, 401);
+  assert.equal((await cancel('Bearer someone-else')).status, 401);
+  const res = await cancel('Bearer admin-session');
+  assert.equal(res.status, 200);
+  assert.equal(tables.subscriptions[0].status, 'cancelled');
+  const call = sent.find(s => s.host === 'ecpay-cancel').body;
+  assert.equal(call.Action, 'Cancel'); assert.equal(call.MerchantTradeNo, id); assert.ok(await verifyMac(call, STAGE));
+  await ecpay(periodNotice(id, 2, 880), 'period');
+  assert.equal(tables.orders.length, 1);
+  assert.ok(tables.subscriptions[0].data.history.some(h => h.text.includes('退款')));
+  validState();
 });
 
 console.log(`${results.length} server checks passed`);

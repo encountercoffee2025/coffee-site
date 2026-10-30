@@ -81,3 +81,41 @@ export function paymentTypeLabel(type = '') {
   if (type.startsWith('TWQR')) return '台灣 Pay';
   return type || '綠界';
 }
+
+// 信用卡定期定額：第一期立即授權，之後依週期自動扣款（每月或每兩個月，最多 99 期）
+export async function periodicForm(sub, cfg, urls, now = new Date()) {
+  const clean = s => String(s).replace(/[#&=<>"'\r\n|]/g, ' ').replace(/\s+/g, ' ').trim();
+  const fields = {
+    MerchantID: cfg.merchantId,
+    MerchantTradeNo: sub.id,
+    MerchantTradeDate: taipeiTime(now),
+    PaymentType: 'aio',
+    TotalAmount: String(sub.price),
+    TradeDesc: '一遇咖啡月費訂購',
+    ItemName: `${clean(sub.name)}（${sub.cycle === '2' ? '每兩個月' : '每月'}）x 1`,
+    ReturnURL: urls.notify,
+    OrderResultURL: urls.result,
+    ClientBackURL: urls.back,
+    ChoosePayment: 'Credit',
+    EncryptType: '1',
+    PeriodAmount: String(sub.price),
+    PeriodType: 'M',
+    Frequency: sub.cycle === '2' ? '2' : '1',
+    ExecTimes: '99',
+    PeriodReturnURL: urls.period,
+    CustomField1: sub.id
+  };
+  fields.CheckMacValue = await checkMacValue(fields, cfg.hashKey, cfg.hashIV);
+  return { action: ECPAY_URL[cfg.mode], fields };
+}
+
+const PERIOD_ACTION_URL = { stage: 'https://payment-stage.ecpay.com.tw/Cashier/CreditCardPeriodAction', prod: 'https://payment.ecpay.com.tw/Cashier/CreditCardPeriodAction' };
+// 通知綠界停止之後的定期定額扣款；回傳 { ok, message }
+export async function cancelPeriod(tradeNo, cfg, now = new Date()) {
+  const fields = { MerchantID: cfg.merchantId, MerchantTradeNo: tradeNo, Action: 'Cancel', TimeStamp: String(Math.floor(now.getTime() / 1000)) };
+  fields.CheckMacValue = await checkMacValue(fields, cfg.hashKey, cfg.hashIV);
+  const res = await fetch(PERIOD_ACTION_URL[cfg.mode], { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(fields).toString() });
+  const body = await res.text();
+  const reply = Object.fromEntries(new URLSearchParams(body.trim()));
+  return { ok: reply.RtnCode === '1', message: reply.RtnMsg || body.slice(0, 120) };
+}

@@ -41,7 +41,7 @@ export function placeOrder(catalog, input, id) {
 }
 
 const STORE_TYPE = { '711': 'UNIMARTC2C', family: 'FAMIC2C' };
-function pickedStore(input) {
+export function pickedStore(input) {
   const type = STORE_TYPE[input.delivery];
   if (!type) return null;
   const s = input.store || {}, clean = (v, n) => String(v ?? '').replace(/[<>\r\n]/g, ' ').trim().slice(0, n);
@@ -52,7 +52,7 @@ function pickedStore(input) {
 
 // 品項說明：例如「衣索比亞・耶加雪菲 水洗｜200g 咖啡豆 · 中焙 · 手沖研磨」
 export function lineSpec(item) {
-  if (item.kind === 'treat') return item.name;
+  if (item.kind === 'treat' || item.kind === 'plan') return item.name;
   const size = item.format ? (item.format === 'drip' ? '濾掛包' : '濾泡包') : `${item.grams}g 咖啡豆`;
   return [item.name + '｜' + size, item.roast && S.roastLabels[item.roast], item.grind && S.grindLabels[item.grind]].filter(Boolean).join(' · ');
 }
