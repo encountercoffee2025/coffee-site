@@ -16,6 +16,8 @@
       .replace(/瀏覽全部 (\d+) 款熟豆/g, 'Explore all $1 coffees')
       .replace(/第(\d+)張：/g, 'Image $1: ')
       .replace(/(\d+) 分 (\d+) 秒/g, '$1 min $2 sec')
+      .replace(/再買 (NT\$ [\d,]+)，即可享免運（滿 (NT\$ [\d,]+) 免運）/g, 'Add $1 more for free shipping (free over $2)')
+      .replace(/✓ 已達 (NT\$ [\d,]+)，享免運費/g, '✓ Free shipping unlocked (over $1)')
       .replace(/可售 (\d+) 份/g, '$1 available')
       .replace(/(\d+) 入/g, '$1 pcs')
       .replace(/(\d+) 份/g, '$1 pcs')
