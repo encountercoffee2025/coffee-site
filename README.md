@@ -22,10 +22,12 @@ Open http://127.0.0.1:4173/?lang=en or http://127.0.0.1:4173/?lang=zh. Stop the 
 | File | Purpose |
 | --- | --- |
 | `index.html` | Three-photo hero carousel, four palettes, featured coffees, selection story, brew guide and FAQ |
-| `shop.html` | Ten roasted coffees with origin/roast filters, English/Chinese search and sorting |
-| `product.html?id=guji` | Six-image gallery, 250g/500g bags, stock, flavor, origin, roast date and duration |
-| `checkout.html` | Shared demo cart, weight/price calculations and local demo orders |
-| `admin-orders.html` | Products, stock, roast batches, orders, reports, settings and backup tools |
+| `shop.html` | Ten roasted coffees with an origin filter, English/Chinese search and sorting (roast and format are chosen on the product page) |
+| `product.html?id=guji` | Six-image gallery; step order: roast level (淺中焙/中焙/中深焙) → format (200g beans, drip, steep) → grind (beans only); stock, flavor, origin, roast date and duration |
+| `treats.html` | Four handmade treats with their own stock |
+| `subscribe.html` | Three subscription plans, delivery cycle, roast/grind preference and demo sign-up |
+| `checkout.html` | Shared demo cart (coffee and treats), delivery method (7-ELEVEN NT$60 / FamilyMart NT$60 / home NT$80, free over the threshold), optional order notes, weight/price calculations and local demo orders |
+| `admin-orders.html` | Products and formats, stock, roast batches, treats, orders, subscriptions, reports, settings and backup tools |
 | `story.html`, `about.html` | Responsive brand story and contact information |
 
 Append `?lang=en` to a page URL, or `&lang=en` when an existing product query is present. The EN / 繁中 switch keeps the product ID and anchor. Both languages use the same stored demo data.
@@ -39,7 +41,7 @@ node tests/store.test.cjs
 node tests/i18n.test.cjs
 ```
 
-There are 16 logic/localization checks. Browser viewport validation is documented in [docs/ENGLISH-RWD.md](docs/ENGLISH-RWD.md).
+There are 27 logic/localization checks. Browser viewport validation is documented in [docs/ENGLISH-RWD.md](docs/ENGLISH-RWD.md).
 
 ## Package a committed snapshot
 

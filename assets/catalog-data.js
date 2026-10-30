@@ -1,5 +1,5 @@
 window.COFFEE_SEED = {
-  "version": 1,
+  "version": 3,
   "products": [
     {
       "id": "yirgacheffe",
@@ -67,16 +67,26 @@ window.COFFEE_SEED = {
       ],
       "variants": [
         {
-          "sku": "yirgacheffe-250",
-          "grams": 250,
-          "price": 480,
-          "stock": 22
+          "sku": "yirgacheffe-200",
+          "grams": 200,
+          "price": 380,
+          "stock": 58
         },
         {
-          "sku": "yirgacheffe-500",
-          "grams": 500,
-          "price": 900,
-          "stock": 12
+          "sku": "yirgacheffe-drip",
+          "format": "drip",
+          "count": 10,
+          "grams": 100,
+          "price": 410,
+          "stock": 20
+        },
+        {
+          "sku": "yirgacheffe-steep",
+          "format": "steep",
+          "count": 10,
+          "grams": 100,
+          "price": 410,
+          "stock": 15
         }
       ],
       "reference": {
@@ -154,16 +164,26 @@ window.COFFEE_SEED = {
       ],
       "variants": [
         {
-          "sku": "guji-250",
-          "grams": 250,
-          "price": 560,
-          "stock": 25
+          "sku": "guji-200",
+          "grams": 200,
+          "price": 450,
+          "stock": 64
         },
         {
-          "sku": "guji-500",
-          "grams": 500,
-          "price": 1060,
-          "stock": 13
+          "sku": "guji-drip",
+          "format": "drip",
+          "count": 10,
+          "grams": 100,
+          "price": 480,
+          "stock": 20
+        },
+        {
+          "sku": "guji-steep",
+          "format": "steep",
+          "count": 10,
+          "grams": 100,
+          "price": 480,
+          "stock": 15
         }
       ],
       "reference": {
@@ -241,16 +261,26 @@ window.COFFEE_SEED = {
       ],
       "variants": [
         {
-          "sku": "kenya-nyeri-250",
-          "grams": 250,
-          "price": 680,
-          "stock": 28
+          "sku": "kenya-nyeri-200",
+          "grams": 200,
+          "price": 540,
+          "stock": 70
         },
         {
-          "sku": "kenya-nyeri-500",
-          "grams": 500,
-          "price": 1290,
-          "stock": 14
+          "sku": "kenya-nyeri-drip",
+          "format": "drip",
+          "count": 10,
+          "grams": 100,
+          "price": 580,
+          "stock": 20
+        },
+        {
+          "sku": "kenya-nyeri-steep",
+          "format": "steep",
+          "count": 10,
+          "grams": 100,
+          "price": 580,
+          "stock": 15
         }
       ],
       "reference": {
@@ -327,15 +357,25 @@ window.COFFEE_SEED = {
       ],
       "variants": [
         {
-          "sku": "colombia-huila-250",
-          "grams": 250,
-          "price": 450,
-          "stock": 30
+          "sku": "colombia-huila-200",
+          "grams": 200,
+          "price": 360,
+          "stock": 75
         },
         {
-          "sku": "colombia-huila-500",
-          "grams": 500,
-          "price": 850,
+          "sku": "colombia-huila-drip",
+          "format": "drip",
+          "count": 10,
+          "grams": 100,
+          "price": 380,
+          "stock": 20
+        },
+        {
+          "sku": "colombia-huila-steep",
+          "format": "steep",
+          "count": 10,
+          "grams": 100,
+          "price": 380,
           "stock": 15
         }
       ],
@@ -413,16 +453,26 @@ window.COFFEE_SEED = {
       ],
       "variants": [
         {
-          "sku": "guatemala-antigua-250",
-          "grams": 250,
-          "price": 420,
-          "stock": 32
+          "sku": "guatemala-antigua-200",
+          "grams": 200,
+          "price": 340,
+          "stock": 80
         },
         {
-          "sku": "guatemala-antigua-500",
-          "grams": 500,
-          "price": 790,
-          "stock": 16
+          "sku": "guatemala-antigua-drip",
+          "format": "drip",
+          "count": 10,
+          "grams": 100,
+          "price": 360,
+          "stock": 20
+        },
+        {
+          "sku": "guatemala-antigua-steep",
+          "format": "steep",
+          "count": 10,
+          "grams": 100,
+          "price": 360,
+          "stock": 15
         }
       ],
       "reference": {
@@ -500,16 +550,26 @@ window.COFFEE_SEED = {
       ],
       "variants": [
         {
-          "sku": "brazil-cerrado-250",
-          "grams": 250,
-          "price": 320,
-          "stock": 34
+          "sku": "brazil-cerrado-200",
+          "grams": 200,
+          "price": 260,
+          "stock": 83
         },
         {
-          "sku": "brazil-cerrado-500",
-          "grams": 500,
-          "price": 600,
-          "stock": 16
+          "sku": "brazil-cerrado-drip",
+          "format": "drip",
+          "count": 10,
+          "grams": 100,
+          "price": 270,
+          "stock": 20
+        },
+        {
+          "sku": "brazil-cerrado-steep",
+          "format": "steep",
+          "count": 10,
+          "grams": 100,
+          "price": 270,
+          "stock": 15
         }
       ],
       "reference": {
@@ -587,16 +647,26 @@ window.COFFEE_SEED = {
       ],
       "variants": [
         {
-          "sku": "costa-rica-250",
-          "grams": 250,
-          "price": 620,
-          "stock": 36
+          "sku": "costa-rica-200",
+          "grams": 200,
+          "price": 500,
+          "stock": 90
         },
         {
-          "sku": "costa-rica-500",
-          "grams": 500,
-          "price": 1170,
-          "stock": 18
+          "sku": "costa-rica-drip",
+          "format": "drip",
+          "count": 10,
+          "grams": 100,
+          "price": 530,
+          "stock": 20
+        },
+        {
+          "sku": "costa-rica-steep",
+          "format": "steep",
+          "count": 10,
+          "grams": 100,
+          "price": 530,
+          "stock": 15
         }
       ],
       "reference": {
@@ -674,16 +744,26 @@ window.COFFEE_SEED = {
       ],
       "variants": [
         {
-          "sku": "mandheling-250",
-          "grams": 250,
-          "price": 480,
-          "stock": 38
+          "sku": "mandheling-200",
+          "grams": 200,
+          "price": 380,
+          "stock": 93
         },
         {
-          "sku": "mandheling-500",
-          "grams": 500,
-          "price": 900,
-          "stock": 18
+          "sku": "mandheling-drip",
+          "format": "drip",
+          "count": 10,
+          "grams": 100,
+          "price": 410,
+          "stock": 20
+        },
+        {
+          "sku": "mandheling-steep",
+          "format": "steep",
+          "count": 10,
+          "grams": 100,
+          "price": 410,
+          "stock": 15
         }
       ],
       "reference": {
@@ -761,16 +841,18 @@ window.COFFEE_SEED = {
       ],
       "variants": [
         {
-          "sku": "panama-geisha-250",
-          "grams": 250,
-          "price": 1080,
-          "stock": 3
+          "sku": "panama-geisha-200",
+          "grams": 200,
+          "price": 860,
+          "stock": 4
         },
         {
-          "sku": "panama-geisha-500",
-          "grams": 500,
-          "price": 2050,
-          "stock": 0
+          "sku": "panama-geisha-drip",
+          "format": "drip",
+          "count": 10,
+          "grams": 100,
+          "price": 920,
+          "stock": 8
         }
       ],
       "reference": {
@@ -848,16 +930,26 @@ window.COFFEE_SEED = {
       ],
       "variants": [
         {
-          "sku": "taiwan-alishan-250",
-          "grams": 250,
-          "price": 1280,
-          "stock": 42
+          "sku": "taiwan-alishan-200",
+          "grams": 200,
+          "price": 1020,
+          "stock": 105
         },
         {
-          "sku": "taiwan-alishan-500",
-          "grams": 500,
-          "price": 2430,
-          "stock": 21
+          "sku": "taiwan-alishan-drip",
+          "format": "drip",
+          "count": 10,
+          "grams": 100,
+          "price": 1090,
+          "stock": 20
+        },
+        {
+          "sku": "taiwan-alishan-steep",
+          "format": "steep",
+          "count": 10,
+          "grams": 100,
+          "price": 1090,
+          "stock": 15
         }
       ],
       "reference": {
@@ -879,8 +971,7 @@ window.COFFEE_SEED = {
       "roast": "淺焙",
       "status": "completed",
       "packs": {
-        "250": 24,
-        "500": 12
+        "200": 60
       },
       "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
@@ -893,8 +984,7 @@ window.COFFEE_SEED = {
       "roast": "淺焙",
       "status": "completed",
       "packs": {
-        "250": 26,
-        "500": 13
+        "200": 65
       },
       "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
@@ -907,8 +997,7 @@ window.COFFEE_SEED = {
       "roast": "淺焙",
       "status": "completed",
       "packs": {
-        "250": 28,
-        "500": 14
+        "200": 70
       },
       "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
@@ -921,8 +1010,7 @@ window.COFFEE_SEED = {
       "roast": "中焙",
       "status": "completed",
       "packs": {
-        "250": 30,
-        "500": 15
+        "200": 75
       },
       "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
@@ -935,8 +1023,7 @@ window.COFFEE_SEED = {
       "roast": "中焙",
       "status": "completed",
       "packs": {
-        "250": 32,
-        "500": 16
+        "200": 80
       },
       "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
@@ -949,8 +1036,7 @@ window.COFFEE_SEED = {
       "roast": "中焙",
       "status": "completed",
       "packs": {
-        "250": 34,
-        "500": 17
+        "200": 85
       },
       "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
@@ -963,8 +1049,7 @@ window.COFFEE_SEED = {
       "roast": "淺焙",
       "status": "completed",
       "packs": {
-        "250": 36,
-        "500": 18
+        "200": 90
       },
       "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
@@ -977,8 +1062,7 @@ window.COFFEE_SEED = {
       "roast": "中深焙",
       "status": "completed",
       "packs": {
-        "250": 38,
-        "500": 19
+        "200": 95
       },
       "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
@@ -991,8 +1075,7 @@ window.COFFEE_SEED = {
       "roast": "淺焙",
       "status": "completed",
       "packs": {
-        "250": 3,
-        "500": 0
+        "200": 4
       },
       "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
@@ -1005,8 +1088,7 @@ window.COFFEE_SEED = {
       "roast": "中焙",
       "status": "completed",
       "packs": {
-        "250": 42,
-        "500": 21
+        "200": 105
       },
       "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
@@ -1027,17 +1109,17 @@ window.COFFEE_SEED = {
       "items": [
         {
           "productId": "yirgacheffe",
-          "sku": "yirgacheffe-250",
+          "sku": "yirgacheffe-200",
           "name": "衣索比亞・耶加雪菲 水洗",
-          "grams": 250,
-          "price": 480,
+          "grams": 200,
+          "price": 380,
           "quantity": 2,
           "batchId": "RB-2610-001"
         }
       ],
-      "subtotal": 960,
+      "subtotal": 760,
       "shipping": 60,
-      "total": 1020,
+      "total": 820,
       "reserved": true,
       "tracking": "",
       "notes": "虛構示範訂單，非真實客戶或交易。",
@@ -1062,17 +1144,17 @@ window.COFFEE_SEED = {
       "items": [
         {
           "productId": "mandheling",
-          "sku": "mandheling-500",
+          "sku": "mandheling-200",
           "name": "印尼・林東曼特寧 濕剝",
-          "grams": 500,
-          "price": 900,
+          "grams": 200,
+          "price": 380,
           "quantity": 1,
           "batchId": "RB-2610-008"
         }
       ],
-      "subtotal": 900,
+      "subtotal": 380,
       "shipping": 60,
-      "total": 960,
+      "total": 440,
       "reserved": true,
       "tracking": "",
       "notes": "虛構示範訂單，非真實客戶或交易。",
@@ -1097,26 +1179,26 @@ window.COFFEE_SEED = {
       "items": [
         {
           "productId": "guji",
-          "sku": "guji-250",
+          "sku": "guji-200",
           "name": "衣索比亞・古吉 日曬",
-          "grams": 250,
-          "price": 560,
+          "grams": 200,
+          "price": 450,
           "quantity": 1,
           "batchId": "RB-2610-002"
         },
         {
           "productId": "brazil-cerrado",
-          "sku": "brazil-cerrado-500",
+          "sku": "brazil-cerrado-200",
           "name": "巴西・喜拉朵 日曬",
-          "grams": 500,
-          "price": 600,
+          "grams": 200,
+          "price": 260,
           "quantity": 1,
           "batchId": "RB-2610-006"
         }
       ],
-      "subtotal": 1160,
+      "subtotal": 710,
       "shipping": 60,
-      "total": 1220,
+      "total": 770,
       "reserved": true,
       "tracking": "TW-DEMO-0003",
       "notes": "虛構示範訂單，非真實客戶或交易。",
@@ -1134,49 +1216,142 @@ window.COFFEE_SEED = {
       "id": "MV-DEMO-261013-001-yirgacheffe",
       "at": "2026-10-13T09:00:00+08:00",
       "productId": "yirgacheffe",
-      "sku": "yirgacheffe-250",
-      "grams": 250,
+      "sku": "yirgacheffe-200",
+      "grams": 200,
       "delta": -2,
-      "balance": 22,
+      "balance": 58,
       "reason": "期初示範訂單 DEMO-261013-001"
     },
     {
       "id": "MV-DEMO-261013-002-mandheling",
       "at": "2026-10-13T09:00:00+08:00",
       "productId": "mandheling",
-      "sku": "mandheling-500",
-      "grams": 500,
+      "sku": "mandheling-200",
+      "grams": 200,
       "delta": -1,
-      "balance": 18,
+      "balance": 93,
       "reason": "期初示範訂單 DEMO-261013-002"
     },
     {
       "id": "MV-DEMO-261012-003-guji",
       "at": "2026-10-13T09:00:00+08:00",
       "productId": "guji",
-      "sku": "guji-250",
-      "grams": 250,
+      "sku": "guji-200",
+      "grams": 200,
       "delta": -1,
-      "balance": 25,
+      "balance": 64,
       "reason": "期初示範訂單 DEMO-261012-003"
     },
     {
       "id": "MV-DEMO-261012-003-brazil-cerrado",
       "at": "2026-10-13T09:00:00+08:00",
       "productId": "brazil-cerrado",
-      "sku": "brazil-cerrado-500",
-      "grams": 500,
+      "sku": "brazil-cerrado-200",
+      "grams": 200,
       "delta": -1,
-      "balance": 16,
+      "balance": 83,
       "reason": "期初示範訂單 DEMO-261012-003"
     }
   ],
+  "treats": [
+    {
+      "id": "butter-cookie",
+      "name": "手工奶油餅乾",
+      "spec": "8 入",
+      "price": 280,
+      "stock": 30,
+      "shelf": "常溫保存 14 天",
+      "description": "法國發酵奶油，酥鬆不甜膩。",
+      "image": "assets/treats/cookie.svg",
+      "active": true
+    },
+    {
+      "id": "financier",
+      "name": "經典費南雪",
+      "spec": "6 入",
+      "price": 360,
+      "stock": 20,
+      "shelf": "常溫保存 7 天",
+      "description": "焦香奶油與杏仁的溫柔香氣。",
+      "image": "assets/treats/financier.svg",
+      "active": true
+    },
+    {
+      "id": "earl-grey-pound",
+      "name": "伯爵磅蛋糕",
+      "spec": "1 條",
+      "price": 420,
+      "stock": 12,
+      "shelf": "常溫保存 5 天",
+      "description": "伯爵茶香與濕潤綿密的口感。",
+      "image": "assets/treats/pound.svg",
+      "active": true
+    },
+    {
+      "id": "plain-scone",
+      "name": "原味司康",
+      "spec": "4 入",
+      "price": 300,
+      "stock": 18,
+      "shelf": "冷凍保存 30 天",
+      "description": "外酥內軟，搭配手沖最對味。",
+      "image": "assets/treats/scone.svg",
+      "active": true
+    }
+  ],
+  "subscriptions": [],
   "settings": {
     "shopName": "一遇",
-    "shippingFee": 60,
+    "shippingRates": {
+      "711": 60,
+      "family": 60,
+      "home": 80
+    },
     "freeShipping": 1500,
     "carouselSeconds": 6,
-    "supportEmail": "contact@pureselectcoffee.tw"
+    "supportEmail": "contact@pureselectcoffee.tw",
+    "giftWrapFee": 80
   },
   "updatedAt": "2026-10-13T09:00:00+08:00"
 };
+// 月費方案：價格為每期金額（含運）。訂閱紀錄會保存當下的方案名稱與價格。
+window.COFFEE_PLANS = [
+  {
+    "id": "first",
+    "mark": "初",
+    "name": "初遇方案",
+    "price": 680,
+    "beans": false,
+    "items": [
+      "濾掛包 20 入",
+      "當季精選 2 款",
+      "風味筆記卡"
+    ]
+  },
+  {
+    "id": "regular",
+    "mark": "常",
+    "name": "常遇方案",
+    "price": 880,
+    "beans": true,
+    "popular": true,
+    "items": [
+      "咖啡豆 200g × 2 包",
+      "可選原豆或研磨",
+      "風味筆記卡"
+    ]
+  },
+  {
+    "id": "together",
+    "mark": "相",
+    "name": "相遇方案",
+    "price": 1380,
+    "beans": true,
+    "items": [
+      "咖啡豆 200g × 2 包",
+      "濾掛包 10 入",
+      "手作點心一份",
+      "風味筆記卡"
+    ]
+  }
+];

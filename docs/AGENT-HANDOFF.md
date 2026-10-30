@@ -12,7 +12,7 @@ Implemented features:
 
 - Three full-screen hero photos: coffee beans, roastery and morning brewing. Default six-second fading carousel, manual controls, motion pause, hidden-tab handling and reduced-motion support.
 - Four homepage palettes: `terra`, `forest`, `cobalt`, `nocturne`.
-- Ten **roasted** coffee products, not green beans. Each has six distinct gallery entries, origin imagery, flavor notes, references, roast metadata and independent 250g/500g SKUs. Some generic bean/packaging/brewing images are shared between products.
+- Ten **roasted** coffee products, not green beans. Each has six distinct gallery entries, origin imagery, flavor notes, references, roast metadata and independent SKUs: a 200g bean bag plus optional drip and steep bags. Some generic bean/packaging/brewing images are shared between products.
 - Functional local cart and order creation, with transactional stock changes and order snapshots.
 - Operable demo admin: overview, product CRUD/visibility/images, stock adjustments, roast schedules/completion, order workflow, reports, settings and CSV/JSON export/import/reset.
 - Chinese and English storefronts and admin UI, with responsive layouts and language-preserving navigation.
@@ -58,7 +58,8 @@ Keep locale setup before page renderers. When changing CSS or JavaScript, bump t
 - Chinese homepage: `/?lang=zh`; English homepage: `/?lang=en`.
 - Product: `/product.html?id=mandheling&lang=en`.
 - Product brew section: `/product.html?id=guji&lang=en#brew-guide`.
-- Admin routes: `#overview`, `#products`, `#inventory`, `#roasting`, `#orders`, `#reports`, `#settings`.
+- Admin routes: `#overview`, `#products`, `#inventory`, `#roasting`, `#treats`, `#orders`, `#subscriptions`, `#reports`, `#settings`.
+- Product with a preselected format: `/product.html?id=guji&format=drip`.
 - Order deep link: `/admin-orders.html?order=ORDER_ID&lang=en#orders`.
 
 Actual URLs have the repository subpath `/coffee-site/` on GitHub Pages. Use relative site links; do not assume deployment at a domain root.
@@ -71,7 +72,7 @@ The initial ten products have English display translations. Admin edits the **or
 
 ## 5. Data model and invariants
 
-Main storage key: `pure-select-store-v1`. Other keys include `pure-select-theme` and `pure-select-motion`. Browser origins are independent: localhost, GitHub Pages, different ports and another domain do not share data.
+Main storage key: `pure-select-store-v1` (data `version` 3). Older saved data is upgraded in place on load or import. Version 2 → 3: 250g/500g bean SKUs are replaced by one 200g SKU (stock converted by total weight, ledger entries record both sides), cart lines for retired SKUs are dropped and planned batches convert to 200g packs; completed batches and orders keep their 250g/500g snapshots, and cancelling such an order records that the retired SKU is not restocked. Version 1 → 2: seed drip/steep SKUs are added to matching products with an upgrade ledger entry, seed treats, an empty subscription list and `settings.giftWrapFee` are added; existing orders, stock and custom content are kept. Other keys include `pure-select-theme` and `pure-select-motion`. Browser origins are independent: localhost, GitHub Pages, different ports and another domain do not share data.
 
 `CoffeeStore.state()` returns a copy of state. Mutations read the latest saved state, clone, validate and commit. A failed persistence write must not partially apply an order or inventory update. Notifications use `coffee:change` plus cross-tab `storage` events. This does not provide server-side, multi-user transaction guarantees.
 
@@ -81,6 +82,9 @@ Public model API includes:
 state, validate, today, imageURL
 cartDetails, addCart, setCart, createOrder, updateOrder
 saveProduct, deleteProduct, adjustStock
+addTreat, saveTreat, adjustTreatStock
+createSubscription, updateSubscription
+variantLabel, formatOf, lineKey, grinds, grindLabels, roastPrefs, plans, subStatuses
 addBatch, updateBatch, saveSettings
 exportData, importData, reset
 statuses, payments
@@ -88,7 +92,9 @@ statuses, payments
 
 Important rules:
 
-1. Each product has two variants with grams exactly 250 and 500, SKU `${productId}-${grams}`, integer prices and integer stock in **bags**. UI shows both bag counts and total grams. Editing product content must not overwrite stock.
+1. Each product has one required bean variant with grams exactly 200, SKU `${productId}-200`, plus optional `drip` and `steep` variants (SKU `${productId}-${format}`, `count` 10, `grams` 100), all with integer prices and integer stock in **bags**. Editing product content must not overwrite stock; a newly enabled format starts at 0 and a format can be removed only at 0 stock with no order history. The product page asks, in order: 1 roast level (`light-medium` 淺中焙, `medium` 中焙, `medium-dark` 中深焙; applies to every format, roasted to order, roasts of one SKU share its stock; default = the product `roast` mapped 淺焙→淺中焙, preselected without a badge), 2 format, 3 grind (`whole`, `pour`, `espresso`; beans only). Cart and order lines are keyed by SKU + grind + roast, and lines of one SKU share its stock. Subscription roast preferences use the same codes plus `any`; older 淺焙/中焙/中深焙 values remain valid.
+1a. Treats (`state.treats`) have their own integer stock in pieces, reserved by orders and restored by cancellation, with ledger product IDs `treat:<id>`. Order items for treats have `kind: "treat"` and `grams: 0`. The checkout no longer offers a gift box (removed at the owner's request); `giftWrap`/`giftFee`/`gift.card` remain supported in the model for older orders; the checkout textarea is now an optional customer note stored as `customerNote` (≤200 chars, shown in admin as 顧客備註). Orders may carry `delivery` (`711`, `family`, `home`; rates in `settings.shippingRates`, charged only below `settings.freeShipping`; for pickup the address field holds the store name/number), `gift: {wrap, card}` and `giftFee`; `total = subtotal + shipping + giftFee`.
+1b. Subscriptions (`state.subscriptions`) snapshot the plan name and price from `window.COFFEE_PLANS`, move `active ⇄ paused → cancelled`, and are local records only: there is no recurring billing.
 2. Product galleries require 5–12 entries and at least five distinct image URLs. Image URLs are validated as local asset paths, HTTPS or supported image data URLs. Keep escaped text rendering and image validation when adding UI.
 3. Cart lines do not reserve stock. Creating an order checks current availability and prices, deducts stock, records snapshots and clears the cart atomically. Historical order prices do not change when product prices change.
 4. Fulfillment progresses `new → confirmed → packing → shipped → completed`. Shipping requires a tracking number. Cancellation before shipping restores stock once; shipped/completed orders need a separate future returns implementation.
@@ -103,7 +109,7 @@ Important rules:
 
 The initial catalog covers Yirgacheffe, Guji, Kenya Nyeri, Colombia Huila, Guatemala Antigua, Brazil Cerrado, Costa Rica Tarrazú, Indonesia Lintong Mandheling, Panama Geisha and Taiwan Alishan.
 
-- `docs/coffee-price-survey-2026-10-13.md`: official source links, original weights/prices, researched flavor/variety information and unknowns. The site's own 250g/500g prices are separate **demo prices**, not supplier quotes or direct normalized comparisons.
+- `docs/coffee-price-survey-2026-10-13.md`: official source links, original weights/prices, researched flavor/variety information and unknowns. The site's own 200g, drip and steep prices are separate **demo prices**, not supplier quotes or direct normalized comparisons.
 - `docs/catalog-images.md`: added image index and website paths.
 - `docs/catalog-image-prompts-a.md`, `docs/catalog-image-prompts-b.md`, `assets/coffee-roast-hero.prompt.md`: historical built-in imagegen prompts.
 
@@ -128,7 +134,7 @@ Suggested manual regression:
 
 1. Both languages: hero auto/manual controls, pause, menu, palette and featured search/filter.
 2. English catalog: search `mango`, filter Kenya, sort by price and roast date.
-3. Product: all gallery controls/lightbox, 250g/500g price and stock, bag-count × weight.
+3. Product: all gallery controls/lightbox, format and grind choice, price and stock, bag-count × weight.
 4. Switch languages on a product link; preserve ID/hash and cart data.
 5. Demo checkout and admin cancellation; verify stock is deducted/restored once.
 6. Complete a roast batch once; verify stock and latest date/duration update.
