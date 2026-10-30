@@ -75,7 +75,7 @@
   const processButtons=[...document.querySelectorAll('[data-process]')];
   processButtons.forEach(button=>button.addEventListener('click',()=>{
     processButtons.forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
-    const image=processImages[Number(button.dataset.process)];
+    const n=Number(button.dataset.process),image=window.CoffeeContent?.image('home.process.img'+(n+1))||processImages[n];
     document.getElementById('process-image').src=image.src;
     document.getElementById('process-image').alt=image.alt;
     const caption=`${button.querySelector('.step-number').textContent} / ${button.querySelector('strong').textContent}`;

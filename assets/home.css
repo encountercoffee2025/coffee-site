@@ -29,3 +29,6 @@
 @media(max-width:767px){.home-offers{gap:16px}.offer-card{grid-template-columns:90px 1fr;gap:18px;padding:18px}.offer-card>img,.offer-mark{width:90px;height:90px}.offer-mark{font-size:40px}.offer-card h2{font-size:19px}}
 html:not([data-lang=en]) .coffee-hero h1{padding-left:.08em}
 @media(max-width:767px){html:not([data-lang=en]) .coffee-hero h1{padding-left:.04em}}
+/* Cloud page content: hide editable spots briefly on a first visit until cloud content arrives */
+html.cloud-loading [data-content],html.cloud-loading [data-content-img]{visibility:hidden}
+.theme-control[hidden]{display:none!important}
