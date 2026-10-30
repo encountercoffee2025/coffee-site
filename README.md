@@ -2,8 +2,8 @@
 
 A bilingual, responsive roasted-coffee storefront and operable administration demo. Plain HTML, CSS and JavaScript; no build step, npm installation, backend or database is required.
 
-- Live Chinese site: https://tsglee.github.io/coffee-site/?lang=zh
-- Live English site: https://tsglee.github.io/coffee-site/?lang=en
+- Live Chinese site: https://encountercoffee2025.com/?lang=zh
+- Live English site: https://encountercoffee2025.com/?lang=en
 - Repository: https://github.com/tsglee/coffee-site
 - **For another AI agent: read [docs/AGENT-HANDOFF.md](docs/AGENT-HANDOFF.md) first.**
 

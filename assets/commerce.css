@@ -17,3 +17,21 @@ body[data-page=admin]{background:#f4f3ef;color:#292d29;font-family:Inter,'Noto S
 .roast-step .muted{margin-top:10px;font-size:11px}
 .catalog-toolbar{grid-template-columns:1.5fr 1fr 1.2fr}
 @media(max-width:1100px){.catalog-toolbar{grid-template-columns:1fr 1fr}.catalog-toolbar>label:first-child{grid-column:1/-1}}
+/* Cloud sync: first-visit loading, admin sign-in gate, sync status, image upload */
+html.cloud-loading #store-main{visibility:hidden}
+.cloud-gate{display:none}
+html.cloud-locked .cloud-gate{display:grid;place-items:center;min-height:100vh;padding:24px 16px;background:#f3f0e8}
+html.cloud-locked .admin-layout{display:none}
+.cloud-gate form{width:min(100%,400px);margin:0;display:grid;gap:4px}
+.cloud-gate h1{margin:4px 0 6px}
+.cloud-gate label{display:grid;gap:6px;margin-top:12px}
+.cloud-gate input{width:100%;padding:11px 12px;border:1px solid #d9ddd4;background:#fff;color:#292d29;font:inherit}
+.cloud-gate .primary-button{margin-top:10px;padding:12px;cursor:pointer}
+#cloud-login-error{min-height:1em;margin:6px 0 0;color:#a3402d;font-size:13px}
+.cloud-gate .admin-back{margin-top:14px;font-size:12px}
+#cloud-status{margin-left:auto;letter-spacing:.04em}
+#cloud-status[data-kind=ok]{color:#3f6b48}
+#cloud-status[data-kind=busy]{color:#8a6d2f}
+#cloud-status[data-kind=error]{color:#a3402d;font-weight:600}
+.cloud-logout{border:1px solid #d9ddd4;background:#fff;color:inherit;font:inherit;padding:4px 10px;cursor:pointer}
+.cloud-upload{margin-top:8px;padding:7px 12px;font-size:12px;cursor:pointer;width:max-content}

@@ -118,6 +118,10 @@
  function exportData(){return JSON.stringify(state(),null,2)}
  function importData(raw){const s=validate(migrate(JSON.parse(raw)));commit(s)}
  function reset(){return commit(copy(window.COFFEE_SEED))}
+ // 雲端同步：商品、點心、批次、庫存紀錄與設定由後台存到 Supabase；購物車、訂單、訂閱仍留在本機。
+ const cloudKeys=['products','treats','batches','ledger','settings'];
+ function cloudCatalog(s=state()){const c={version:s.version};cloudKeys.forEach(k=>c[k]=copy(s[k]));return c}
+ function applyCloud(c){if(c?.version!==3||cloudKeys.some(k=>c[k]===undefined))error('雲端資料格式不相容');const s=state();if(cloudKeys.every(k=>JSON.stringify(s[k])===JSON.stringify(c[k])))return false;cloudKeys.forEach(k=>s[k]=copy(c[k]));const hasTreat=id=>s.treats.some(t=>t.id===id),hasProduct=id=>s.products.some(p=>p.id===id);s.cart=s.cart.filter(i=>i.kind==='treat'?hasTreat(i.treatId):s.products.some(p=>p.id===i.productId&&p.variants.some(v=>v.sku===i.sku)));s.orders=s.orders.filter(o=>o.items.every(i=>i.kind==='treat'?hasTreat(i.treatId):hasProduct(i.productId)));commit(s);return true}
  window.addEventListener('storage',event=>{if(event.key===KEY)window.dispatchEvent(new CustomEvent('coffee:change'))});
- window.CoffeeStore={state,cartDetails,addCart,addTreat,setCart,createOrder,updateOrder,saveProduct,deleteProduct,adjustStock,saveTreat,adjustTreatStock,addBatch,updateBatch,createSubscription,updateSubscription,saveSettings,exportData,importData,reset,today,validate,imageURL,statuses,payments,subStatuses,deliveries,deliveryLabels,formats,grinds,grindLabels,roasts,roastLabels,defaultRoast,roastPrefs,plans,formatOf,variantLabel,lineKey};
+ window.CoffeeStore={state,cloudCatalog,applyCloud,cartDetails,addCart,addTreat,setCart,createOrder,updateOrder,saveProduct,deleteProduct,adjustStock,saveTreat,adjustTreatStock,addBatch,updateBatch,createSubscription,updateSubscription,saveSettings,exportData,importData,reset,today,validate,imageURL,statuses,payments,subStatuses,deliveries,deliveryLabels,formats,grinds,grindLabels,roasts,roastLabels,defaultRoast,roastPrefs,plans,formatOf,variantLabel,lineKey};
 })();
