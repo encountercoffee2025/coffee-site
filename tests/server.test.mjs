@@ -43,6 +43,7 @@ globalThis.fetch = async (url, init = {}) => {
 
 const ENV = { SUPABASE_URL: 'https://demo.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'service', SITE_URL: 'https://encountercoffee2025.com' };
 const NOTIFY_ENV = { ...ENV, LINE_CHANNEL_ACCESS_TOKEN: 'line-token', LINE_OWNER_USER_ID: 'Uowner', RESEND_API_KEY: 'resend' };
+const MAIL_ENV = { ...NOTIFY_ENV, OWNER_EMAIL: 'owner@example.com' };
 const customer = { name: '林小姐', email: 'buyer@example.com', phone: '0912345678', address: '7-ELEVEN 深坑門市' };
 const cart = [{ productId: 'guji', sku: 'guji-200', quantity: 2, roast: 'medium', grind: 'pour' }, { kind: 'treat', treatId: 'financier', quantity: 1 }];
 const post = (body, env = ENV) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { origin: 'https://encountercoffee2025.com', 'content-type': 'application/json' }, body: JSON.stringify(body) }), env);
@@ -140,6 +141,7 @@ await check('ECPay notice marks paid once, notifies LINE + email, ignores duplic
   assert.deepEqual(sent.map(s => s.host).sort(), ['api.line.me', 'api.resend.com']);
   assert.ok(sent.find(s => s.host === 'api.line.me').body.messages[0].text.includes(orderId));
   assert.deepEqual(sent.find(s => s.host === 'api.resend.com').body.to, ['buyer@example.com']);
+  assert.equal(sent.find(s => s.host === 'api.resend.com').body.reply_to, undefined);
   assert.equal(await (await ecpay(paidNotice(orderId, total), 'notify', NOTIFY_ENV)).text(), '1|OK');
   assert.equal(sent.length, 2);
   const back = await ecpay(paidNotice(orderId, total), 'return');
@@ -147,6 +149,17 @@ await check('ECPay notice marks paid once, notifies LINE + email, ignores duplic
   assert.equal(back.headers.get('location'), `https://encountercoffee2025.com/checkout.html?order=${orderId}&t=${token}`);
   const repay = await post({ action: 'pay', id: orderId, token });
   assert.equal(repay.status, 409);
+});
+
+await check('confirmation email copies the shop and replies go to the shop', async () => {
+  reset();
+  const { orderId, total } = await (await post({ action: 'create', cart, customer, delivery: '711' })).json();
+  await ecpay(paidNotice(orderId, total), 'notify', MAIL_ENV);
+  const mail = sent.find(s => s.host === 'api.resend.com').body;
+  assert.deepEqual(mail.bcc, ['owner@example.com']);
+  assert.equal(mail.reply_to, 'owner@example.com');
+  assert.match(mail.subject, new RegExp(orderId));
+  assert.ok(mail.html.includes('林小姐'));
 });
 
 await check('ECPay notice with wrong signature or wrong amount does not mark paid', async () => {

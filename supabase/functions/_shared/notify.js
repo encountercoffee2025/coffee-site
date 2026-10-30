@@ -50,7 +50,7 @@ export async function notifyPaid(o, paymentLabel, env) {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: env.MAIL_FROM || '一遇 Encounter Coffee <order@encountercoffee2025.com>', to: [o.customer.email], ...(env.OWNER_EMAIL ? { bcc: [env.OWNER_EMAIL] } : {}), subject, html })
+        body: JSON.stringify({ from: env.MAIL_FROM || '一遇 Encounter Coffee <order@encountercoffee2025.com>', to: [o.customer.email], ...(env.OWNER_EMAIL ? { bcc: [env.OWNER_EMAIL] } : {}), ...(env.REPLY_TO || env.OWNER_EMAIL ? { reply_to: env.REPLY_TO || env.OWNER_EMAIL } : {}), subject, html })
       });
       results.push(res.ok ? '已寄出訂單確認信' : `確認信寄送失敗（${res.status}）`);
     } catch (err) { results.push('確認信寄送失敗：' + err.message) }
