@@ -61,7 +61,7 @@ window.COFFEE_CONTENT_MAP = [
     { title: '咖啡選購', items: [['shop.kicker', '英文小標', 'ROASTED COFFEE COLLECTION'], ['shop.title', '標題', '選一款，喜歡的風味。']] },
     { title: '點心', items: [['treats.kicker', '英文小標', 'HANDMADE TREATS'], ['treats.title', '標題', '配一口，剛剛好的甜。'], ['treats.intro', '介紹', '手作小點，與咖啡最好的相遇。\n點心為新鮮製作，下單後約 3–5 天出貨，請盡早享用。']] },
     { title: '月費訂購', items: [['subscribe.kicker', '英文小標', 'COFFEE SUBSCRIPTION'], ['subscribe.title', '標題', '讓好咖啡，按時來找你。'], ['subscribe.intro', '介紹', '每月固定寄出當季精選，可隨時暫停或取消。所有方案皆免運。']] },
-    { title: '購物車', items: [['checkout.kicker', '英文小標', 'YOUR COFFEE BAG'], ['checkout.title', '標題', '把喜歡的風味，帶回日常。'], ['checkout.intro', '介紹', '此為展示結帳。建立後只保存示範訂單，不會扣款或寄出商品。']] }
+    { title: '購物車', items: [['checkout.kicker', '英文小標', 'YOUR COFFEE BAG'], ['checkout.title', '標題', '把喜歡的風味，帶回日常。'], ['checkout.intro', '介紹', '確認品項與配送方式，填好收件資料後前往綠界付款。']] }
   ] },
   { id: 'story.html', name: '品牌故事', sources: ['story.html'], groups: [
     { title: '開頭', items: [['story.kicker', '英文小標'], ['story.title', '大標題'], ['story.intro', '介紹'], ['story.img', '主圖']] },
@@ -74,6 +74,6 @@ window.COFFEE_CONTENT_MAP = [
   { id: 'about.html', name: '關於我們', sources: ['about.html'], note: '聯絡 Email 會自動使用「商店與資料設定」裡的客服電子信箱。', groups: [
     { title: '開頭', items: [['about.kicker', '英文小標'], ['about.title', '大標題'], ['about.intro', '介紹'], ['about.img', '主圖']] },
     { title: '內文段落', items: [['about.s1t', '段落 1 標題'], ['about.s1p', '段落 1 內文'], ['about.s2t', '段落 2 標題'], ['about.s2p', '段落 2 內文']] },
-    { title: '聯絡', items: [['about.contact.kicker', '聯絡英文小標'], ['about.contact.title', '聯絡標題'], ['about.contact.copy', '聯絡說明'], ['about.note', '頁面下方小字說明']] }
+    { title: '聯絡', items: [['about.contact.kicker', '聯絡英文小標'], ['about.contact.title', '聯絡標題'], ['about.contact.copy', '聯絡說明']] }
   ] }
 ];

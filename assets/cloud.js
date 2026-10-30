@@ -1,8 +1,8 @@
 (() => {
   'use strict';
   // Supabase 公開設定：網址與 publishable key 本來就會出現在前端，資料安全由資料庫權限規則（RLS）保護。
-  const CLOUD_URL = 'https://pdnhryhdiknoterpasua.supabase.co';
-  const CLOUD_KEY = 'sb_publishable_Uy_QgC-eiPTkVACNxMk5Fg_vYOYslMz';
+  const CLOUD_URL = 'https://ytejdngkxnebbpxedshz.supabase.co';
+  const CLOUD_KEY = 'sb_publishable_pCNZuMk-MuT4ZnLpL0fnQA_5AxJJRRI';
   const MARK = 'encounter-cloud-at';
   const VERSION = (document.currentScript?.getAttribute('src').match(/\?v=[^&]+/) || [''])[0];
   const S = window.CoffeeStore, root = document.documentElement;
@@ -86,7 +86,30 @@
   }
   const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js';
   const loadScript = src => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('無法載入 ' + src)); document.head.append(s) });
-  const shared = { url: CLOUD_URL, key: CLOUD_KEY, contentCache: CONTENT_CACHE, pause: () => { paused = true }, okImage, readText, writeText, uploadImage, getContent: () => content, setContent: c => { content = c } };
+  // 結帳：建立訂單、重新付款與查詢訂單都交給伺服器（Supabase Edge Function checkout），付款在綠界頁面完成。
+  async function callCheckout(method, body, query = '') {
+    let res;
+    try { res = await fetch(CLOUD_URL + '/functions/v1/checkout' + query, { method, headers: { apikey: CLOUD_KEY, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }) }
+    catch (_) { throw new Error('網路連線失敗，請稍後再試') }
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || '系統忙碌，請稍後再試');
+    return json;
+  }
+  function goPay(payment) {
+    const form = document.createElement('form');
+    form.method = 'POST'; form.action = payment.action; form.acceptCharset = 'UTF-8'; form.hidden = true;
+    Object.entries(payment.fields).forEach(([name, value]) => { const input = document.createElement('input'); input.type = 'hidden'; input.name = name; input.value = value; form.append(input) });
+    document.body.append(form);
+    form.submit();
+  }
+  const shared = {
+    url: CLOUD_URL, key: CLOUD_KEY, contentCache: CONTENT_CACHE, pause: () => { paused = true }, okImage, readText, writeText, uploadImage, getContent: () => content, setContent: c => { content = c },
+    checkout: input => callCheckout('POST', { action: 'create', ...input }),
+    repay: (id, token) => callCheckout('POST', { action: 'pay', id, token }),
+    orderStatus: (id, token) => callCheckout('GET', null, `?id=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`),
+    paymentMode: () => callCheckout('GET', null, '?config'),
+    goPay
+  };
 
   // 前台：讀取雲端商品資料與頁面內容。第一次造訪先隱藏商品區與可編輯內容，避免閃過舊資料；最多等 2.5 秒。
   if (!admin) {
@@ -138,23 +161,65 @@
   document.querySelector('.admin-topbar')?.append(status, logout);
   const setStatus = (text, kind = '') => { status.textContent = t(text); status.dataset.kind = kind };
 
-  let synced = '', unlocked = false, pushing = Promise.resolve(), pending = 0;
+  // 商品資料與訂單都帶版本號：顧客下單（扣庫存）或綠界付款通知比後台先更新時，後台不會覆蓋，而是重新載入最新資料。
+  let synced = '', catalogVersion = 1, unlocked = false, pushing = Promise.resolve(), pending = 0;
+  const syncedOrders = new Map(), orderVersions = new Map();
+  class Stale extends Error {}
+  async function pull() {
+    const [{ data: main, error: mainError }, { data: orders, error: ordersError }] = await Promise.all([
+      sb.from('site_state').select('data,version').eq('id', 'main').maybeSingle(),
+      sb.from('orders').select('id,data,version').order('created_at', { ascending: false }).limit(1000)
+    ]);
+    if (mainError || ordersError) throw new Error((mainError || ordersError).message);
+    if (main?.data) { S.applyCloud(main.data); catalogVersion = main.version; }
+    synced = JSON.stringify(S.cloudCatalog());
+    S.applyOrders(orders.map(o => o.data));
+    syncedOrders.clear(); orderVersions.clear();
+    orders.forEach(o => orderVersions.set(o.id, o.version));
+    S.state().orders.forEach(o => { if (orderVersions.has(o.id)) syncedOrders.set(o.id, JSON.stringify(o)) });
+    return main;
+  }
   async function push() {
+    const now = new Date().toISOString();
+    // 先存訂單（取消訂單時，寧可少算庫存也不要重複販售），再存商品資料
+    for (const o of S.state().orders) {
+      const json = JSON.stringify(o);
+      if (!orderVersions.has(o.id) || syncedOrders.get(o.id) === json) continue;
+      setStatus('同步中…', 'busy');
+      const v = orderVersions.get(o.id);
+      const { data, error } = await sb.from('orders').update({ data: o, status: o.status, payment: o.payment, version: v + 1, updated_at: now }).eq('id', o.id).eq('version', v).select('version');
+      if (error) throw new Error(error.message);
+      if (!data.length) throw new Stale(`訂單 ${o.id} 剛被更新（例如收到付款通知），已載入最新資料，請再操作一次`);
+      orderVersions.set(o.id, data[0].version); syncedOrders.set(o.id, json);
+    }
     const catalog = S.cloudCatalog(), json = JSON.stringify(catalog);
-    if (json === synced) return;
-    setStatus('同步中…', 'busy');
-    const { data, error } = await sb.from('site_state').update({ data: catalog, updated_at: new Date().toISOString() }).eq('id', 'main').select('id');
-    if (error || !data?.length) throw new Error(error?.message || '沒有寫入權限，請重新登入');
-    synced = json;
+    if (json !== synced) {
+      setStatus('同步中…', 'busy');
+      const { data, error } = await sb.from('site_state').update({ data: catalog, version: catalogVersion + 1, updated_at: now }).eq('id', 'main').eq('version', catalogVersion).select('version');
+      if (error) throw new Error(error.message);
+      if (!data.length) throw new Stale('商品資料剛被更新（例如有新訂單扣了庫存），已載入最新資料，請再做一次剛才的修改');
+      catalogVersion = data[0].version; synced = json;
+    }
     setStatus('已同步雲端', 'ok');
   }
   const queuePush = () => {
     if (!unlocked) return;
     pending++;
-    pushing = pushing.then(push).catch(err => { setStatus('雲端同步失敗', 'error'); toast('雲端同步失敗：' + err.message) }).finally(() => pending--);
+    pushing = pushing.then(push).catch(async err => {
+      if (err instanceof Stale) { try { await pull(); window.dispatchEvent(new CustomEvent('coffee:cloud')); setStatus('已同步雲端', 'ok') } catch (_) { setStatus('雲端同步失敗', 'error') } toast(err.message); return }
+      setStatus('雲端同步失敗', 'error'); toast('雲端同步失敗：' + err.message);
+    }).finally(() => pending--);
   };
   window.addEventListener('coffee:change', queuePush);
   window.addEventListener('beforeunload', event => { if (pending) { event.preventDefault(); event.returnValue = '' } });
+  // 回到後台分頁時、以及每分鐘，自動載入新訂單與最新庫存
+  async function refresh() {
+    if (!unlocked || pending || document.hidden || dialogOpen()) return;
+    try { const before = JSON.stringify([S.state().orders, S.cloudCatalog()]); await pull(); if (JSON.stringify([S.state().orders, S.cloudCatalog()]) !== before) window.dispatchEvent(new CustomEvent('coffee:cloud')) } catch (_) {}
+  }
+  const dialogOpen = () => !!document.getElementById('admin-dialog')?.open;
+  window.addEventListener('focus', refresh);
+  setInterval(refresh, 60000);
 
   async function enter() {
     const { data: isAdmin, error } = await sb.rpc('is_admin');
@@ -162,17 +227,16 @@
     if (!isAdmin) { await sb.auth.signOut(); throw new Error('此帳號沒有後台權限'); }
     const { data: rows, error: readError } = await sb.from('site_state').select('id,data').in('id', ['main', 'content']);
     if (readError) throw new Error(readError.message);
-    const row = rows.find(r => r.id === 'main');
     applyContent(rows.find(r => r.id === 'content')?.data || {});
-    if (row?.data) S.applyCloud(row.data);
-    else {
+    if (!rows.some(r => r.id === 'main')) {
       // 第一次登入：把目前的商品資料建立成雲端資料。
       const { error: insertError } = await sb.from('site_state').insert({ id: 'main', data: S.cloudCatalog() });
       if (insertError) throw new Error(insertError.message);
     }
-    synced = JSON.stringify(S.cloudCatalog());
+    await pull();
     remember();
     unlocked = true;
+    S.cleanDemoText();
     setStatus('已同步雲端', 'ok');
     root.classList.remove('cloud-locked');
     window.dispatchEvent(new CustomEvent('coffee:cloud'));

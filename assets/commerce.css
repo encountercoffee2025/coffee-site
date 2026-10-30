@@ -58,3 +58,7 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .en-fields{margin-top:18px;padding:12px 16px;border:1px dashed #cdbfa6;background:#fbf8f2}
 .en-fields summary{cursor:pointer;font-weight:600;font-size:14px}
 .en-fields .muted{margin:8px 0 0;font-size:12px}
+.order-status-items{list-style:none;padding:0;margin:18px auto;max-width:520px;text-align:left}
+.order-status-items li{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.08)}
+.order-status-items .summary-total{font-weight:600;border-bottom:0}
+.pay-mode-note{background:#fff4dc;border:1px solid #e8cf98;color:#6b4d12;padding:8px 12px}

@@ -26,7 +26,7 @@ window.COFFEE_SEED = {
         "ratio": "1:15–1:16",
         "temperature": "90–92°C",
         "grind": "中細研磨",
-        "note": "展示起始參數，可依口味調整；非本批次實測結果。"
+        "note": "建議起始參數，可依口味調整。"
       },
       "profile": {
         "acidity": 4,
@@ -96,7 +96,7 @@ window.COFFEE_SEED = {
         "url": "https://shop.kafed.com.tw/products/bean-yirgacheffe",
         "checkedAt": "2026-10-13"
       },
-      "notes": "示範熟豆選品；生產批次、價格、庫存與烘焙資料皆為展示設定。"
+      "notes": ""
     },
     {
       "id": "guji",
@@ -123,7 +123,7 @@ window.COFFEE_SEED = {
         "ratio": "1:15–1:16",
         "temperature": "90–92°C",
         "grind": "中細研磨",
-        "note": "展示起始參數，可依口味調整；非本批次實測結果。"
+        "note": "建議起始參數，可依口味調整。"
       },
       "profile": {
         "acidity": 4,
@@ -193,7 +193,7 @@ window.COFFEE_SEED = {
         "url": "https://www.happen.coffee/bean-hambela-200g",
         "checkedAt": "2026-10-13"
       },
-      "notes": "示範熟豆選品；生產批次、價格、庫存與烘焙資料皆為展示設定。"
+      "notes": ""
     },
     {
       "id": "kenya-nyeri",
@@ -220,7 +220,7 @@ window.COFFEE_SEED = {
         "ratio": "1:15–1:16",
         "temperature": "90–92°C",
         "grind": "中細研磨",
-        "note": "展示起始參數，可依口味調整；非本批次實測結果。"
+        "note": "建議起始參數，可依口味調整。"
       },
       "profile": {
         "acidity": 4,
@@ -290,7 +290,7 @@ window.COFFEE_SEED = {
         "url": "https://www.tasterscoffee.com/zh-hant/products/kenya-nyeri-gititu-factory-aa-top-washed-light-227%C2%B15g",
         "checkedAt": "2026-10-13"
       },
-      "notes": "示範熟豆選品；生產批次、價格、庫存與烘焙資料皆為展示設定。"
+      "notes": ""
     },
     {
       "id": "colombia-huila",
@@ -316,7 +316,7 @@ window.COFFEE_SEED = {
         "ratio": "1:15–1:16",
         "temperature": "88–90°C",
         "grind": "中細研磨",
-        "note": "展示起始參數，可依口味調整；非本批次實測結果。"
+        "note": "建議起始參數，可依口味調整。"
       },
       "profile": {
         "acidity": 2,
@@ -386,7 +386,7 @@ window.COFFEE_SEED = {
         "url": "https://www.breathingcoffee.com.tw/products/colombiahuilaelitecoffeebeans",
         "checkedAt": "2026-10-13"
       },
-      "notes": "示範熟豆選品；生產批次、價格、庫存與烘焙資料皆為展示設定。"
+      "notes": ""
     },
     {
       "id": "guatemala-antigua",
@@ -412,7 +412,7 @@ window.COFFEE_SEED = {
         "ratio": "1:15–1:16",
         "temperature": "88–90°C",
         "grind": "中細研磨",
-        "note": "展示起始參數，可依口味調整；非本批次實測結果。"
+        "note": "建議起始參數，可依口味調整。"
       },
       "profile": {
         "acidity": 2,
@@ -482,7 +482,7 @@ window.COFFEE_SEED = {
         "url": "https://shop.cozyhousecoffee.com/products/guatemala-antigua-bella-carmona--washed",
         "checkedAt": "2026-10-13"
       },
-      "notes": "示範熟豆選品；生產批次、價格、庫存與烘焙資料皆為展示設定。"
+      "notes": ""
     },
     {
       "id": "brazil-cerrado",
@@ -509,7 +509,7 @@ window.COFFEE_SEED = {
         "ratio": "1:15–1:16",
         "temperature": "88–90°C",
         "grind": "中細研磨",
-        "note": "展示起始參數，可依口味調整；非本批次實測結果。"
+        "note": "建議起始參數，可依口味調整。"
       },
       "profile": {
         "acidity": 2,
@@ -579,7 +579,7 @@ window.COFFEE_SEED = {
         "url": "https://www.weijecoffee.com.tw/product/detail/149",
         "checkedAt": "2026-10-13"
       },
-      "notes": "示範熟豆選品；生產批次、價格、庫存與烘焙資料皆為展示設定。"
+      "notes": ""
     },
     {
       "id": "costa-rica",
@@ -606,7 +606,7 @@ window.COFFEE_SEED = {
         "ratio": "1:15–1:16",
         "temperature": "90–92°C",
         "grind": "中細研磨",
-        "note": "展示起始參數，可依口味調整；非本批次實測結果。"
+        "note": "建議起始參數，可依口味調整。"
       },
       "profile": {
         "acidity": 2,
@@ -676,7 +676,7 @@ window.COFFEE_SEED = {
         "url": "https://www.chengcoffee.com.tw/collections/蜜處理法/products/哥斯大黎加-塔拉珠-莉亞微處理廠-蘇丹汝魅-紅蜜處理-咖啡豆-200克-淺焙",
         "checkedAt": "2026-10-13"
       },
-      "notes": "示範熟豆選品；生產批次、價格、庫存與烘焙資料皆為展示設定。"
+      "notes": ""
     },
     {
       "id": "mandheling",
@@ -703,7 +703,7 @@ window.COFFEE_SEED = {
         "ratio": "1:15–1:16",
         "temperature": "88–90°C",
         "grind": "中細研磨",
-        "note": "展示起始參數，可依口味調整；非本批次實測結果。"
+        "note": "建議起始參數，可依口味調整。"
       },
       "profile": {
         "acidity": 2,
@@ -773,7 +773,7 @@ window.COFFEE_SEED = {
         "url": "https://www.tasterscoffee.com/products/indonesia-sumatra-lintong-mandheling-onan-ganjang-wet-hulled-medium-dark-227%C2%B15g-1",
         "checkedAt": "2026-10-13"
       },
-      "notes": "示範熟豆選品；生產批次、價格、庫存與烘焙資料皆為展示設定。"
+      "notes": ""
     },
     {
       "id": "panama-geisha",
@@ -800,7 +800,7 @@ window.COFFEE_SEED = {
         "ratio": "1:15–1:16",
         "temperature": "90–92°C",
         "grind": "中細研磨",
-        "note": "展示起始參數，可依口味調整；非本批次實測結果。"
+        "note": "建議起始參數，可依口味調整。"
       },
       "profile": {
         "acidity": 4,
@@ -862,7 +862,7 @@ window.COFFEE_SEED = {
         "url": "https://www.1980cafetw.com/light_geisha",
         "checkedAt": "2026-10-13"
       },
-      "notes": "示範熟豆選品；生產批次、價格、庫存與烘焙資料皆為展示設定。"
+      "notes": ""
     },
     {
       "id": "taiwan-alishan",
@@ -889,7 +889,7 @@ window.COFFEE_SEED = {
         "ratio": "1:15",
         "temperature": "91–92°C",
         "grind": "中細研磨",
-        "note": "參考哈本阿里山商品的手沖起始參數；本展示商品非同一實際批次，可依口味調整。"
+        "note": "建議起始參數，可依口味調整。"
       },
       "profile": {
         "acidity": 2,
@@ -959,7 +959,7 @@ window.COFFEE_SEED = {
         "url": "https://www.happen.coffee/alishan-bean-wash-0.5p",
         "checkedAt": "2026-10-13"
       },
-      "notes": "示範熟豆選品；生產批次、價格、庫存與烘焙資料皆為展示設定。"
+      "notes": ""
     }
   ],
   "batches": [
@@ -973,7 +973,7 @@ window.COFFEE_SEED = {
       "packs": {
         "200": 60
       },
-      "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
+      "notes": "期初批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
     },
     {
@@ -986,7 +986,7 @@ window.COFFEE_SEED = {
       "packs": {
         "200": 65
       },
-      "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
+      "notes": "期初批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
     },
     {
@@ -999,7 +999,7 @@ window.COFFEE_SEED = {
       "packs": {
         "200": 70
       },
-      "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
+      "notes": "期初批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
     },
     {
@@ -1012,7 +1012,7 @@ window.COFFEE_SEED = {
       "packs": {
         "200": 75
       },
-      "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
+      "notes": "期初批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
     },
     {
@@ -1025,7 +1025,7 @@ window.COFFEE_SEED = {
       "packs": {
         "200": 80
       },
-      "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
+      "notes": "期初批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
     },
     {
@@ -1038,7 +1038,7 @@ window.COFFEE_SEED = {
       "packs": {
         "200": 85
       },
-      "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
+      "notes": "期初批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
     },
     {
@@ -1051,7 +1051,7 @@ window.COFFEE_SEED = {
       "packs": {
         "200": 90
       },
-      "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
+      "notes": "期初批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
     },
     {
@@ -1064,7 +1064,7 @@ window.COFFEE_SEED = {
       "packs": {
         "200": 95
       },
-      "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
+      "notes": "期初批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
     },
     {
@@ -1077,7 +1077,7 @@ window.COFFEE_SEED = {
       "packs": {
         "200": 4
       },
-      "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
+      "notes": "期初批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
     },
     {
@@ -1090,7 +1090,7 @@ window.COFFEE_SEED = {
       "packs": {
         "200": 105
       },
-      "notes": "期初示範批次；庫存為可售包數，已列入期初庫存。",
+      "notes": "期初批次；庫存為可售包數，已列入期初庫存。",
       "stockApplied": true
     }
   ],
