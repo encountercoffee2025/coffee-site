@@ -59,7 +59,8 @@
     });
     if (window.COFFEE_PLANS) basePlans.forEach((base, i) => {
       const o = content.plans[base.id] || {};
-      window.COFFEE_PLANS[i] = { ...base, ...(o.name ? { name: o.name } : {}), ...(Number.isInteger(o.price) && o.price > 0 ? { price: o.price } : {}), ...(Array.isArray(o.items) && o.items.length ? { items: o.items } : {}) };
+      const name = window.CoffeeI18n?.lang === 'en' ? o.nameEn : o.name, items = window.CoffeeI18n?.lang === 'en' ? o.itemsEn : o.items;
+      window.COFFEE_PLANS[i] = { ...base, ...(name ? { name } : {}), ...(Number.isInteger(o.price) && o.price > 0 ? { price: o.price } : {}), ...(Array.isArray(items) && items.length ? { items } : {}) };
     });
   }
   window.CoffeeContent = { image: key => { const o = content.images[key]; return o && okImage(o.src) ? { src: o.src, alt: o.alt || '' } : null } };
@@ -253,7 +254,7 @@
     const panel = main.querySelector('.admin-panel');
     try {
       if (contentTab === 'plans') {
-        panel.innerHTML = `<form id="content-form"><p class="muted">修改方案名稱、每期價格與內容（每行一項）。已訂閱的顧客維持訂閱當時的價格。</p>${basePlans.map(base => { const p = window.COFFEE_PLANS.find(x => x.id === base.id) || base; return `<fieldset class="content-item"><legend>${esc(base.mark)}・${esc(base.name)}</legend><label>方案名稱<input name="${esc(base.id)}.name" value="${esc(p.name)}" maxlength="30" required></label><label>每期價格（NT$）<input name="${esc(base.id)}.price" type="number" min="1" max="100000" step="1" value="${p.price}" required></label><label>方案內容（每行一項）<textarea name="${esc(base.id)}.items" rows="4" maxlength="400" required>${esc(p.items.join('\n'))}</textarea></label></fieldset>` }).join('')}<div class="admin-actions"><button class="primary-button" type="submit">儲存月費方案</button></div></form>`;
+        panel.innerHTML = `<form id="content-form"><p class="muted">修改方案名稱、每期價格與內容（每行一項）。已訂閱的顧客維持訂閱當時的價格。英文欄位留空時，英文頁面維持目前的英文。</p>${basePlans.map(base => { const p = window.COFFEE_PLANS.find(x => x.id === base.id) || base; const o = content.plans[base.id] || {}; return `<fieldset class="content-item"><legend>${esc(base.mark)}・${esc(base.name)}</legend><label>方案名稱<input name="${esc(base.id)}.name" value="${esc(p.name)}" maxlength="30" required></label><label>每期價格（NT$）<input name="${esc(base.id)}.price" type="number" min="1" max="100000" step="1" value="${p.price}" required></label><label>方案內容（每行一項）<textarea name="${esc(base.id)}.items" rows="4" maxlength="400" required>${esc(p.items.join('\n'))}</textarea></label><label>英文方案名稱（選填）<input name="${esc(base.id)}.nameEn" value="${esc(o.nameEn || '')}" maxlength="40" placeholder="${esc(window.COFFEE_EN?.[base.name] || '')}"></label><label>英文方案內容（每行一項，選填）<textarea name="${esc(base.id)}.itemsEn" rows="3" maxlength="500">${esc((o.itemsEn || []).join('\n'))}</textarea></label></fieldset>` }).join('')}<div class="admin-actions"><button class="primary-button" type="submit">儲存月費方案</button></div></form>`;
         panel.querySelector('form').onsubmit = async event => {
           event.preventDefault();
           const f = event.target, plans = {};
@@ -264,6 +265,9 @@
             if (name !== base.name) o.name = name;
             if (price !== base.price) o.price = price;
             if (items.join('\n') !== base.items.join('\n')) o.items = items;
+            const nameEn = f[base.id + '.nameEn'].value.trim(), itemsEn = f[base.id + '.itemsEn'].value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 8);
+            if (nameEn) o.nameEn = nameEn;
+            if (itemsEn.length) o.itemsEn = itemsEn;
             if (Object.keys(o).length) plans[base.id] = o;
           }
           await submitContent(f, { ...content, plans });

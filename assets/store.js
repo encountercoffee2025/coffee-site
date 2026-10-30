@@ -30,6 +30,10 @@
  const deliveryLabels={'711':'7-ELEVEN 取貨',family:'全家取貨',home:'宅配到府'};
  const defaultRates={'711':60,family:60,home:80};
  const lineKey=i=>i.kind==='treat'?'treat:'+i.treatId:i.sku+(i.grind?'|'+i.grind:'')+(i.roast?'@'+i.roast:'');
+ // 英文版（選填）：英文頁面使用這些欄位，空白的欄位維持翻譯對照表的英文。
+ const enProductKeys=['name','country','region','variety','process','harvest','altitude','description'],enTreatKeys=['name','spec','shelf','description'];
+ function validateEn(en,keys,label){if(en===undefined)return;if(!en||typeof en!=='object'||Array.isArray(en))error(label+'英文版格式不正確');Object.entries(en).forEach(([k,v])=>{if(k==='flavors'&&keys===enProductKeys){if(!Array.isArray(v)||!v.length||v.length>10||v.some(x=>typeof x!=='string'||!x.trim()||x.length>40))error('英文風味標籤需為 1–10 個，每個 40 字以內');return}if(!keys.includes(k)||typeof v!=='string'||!v.trim()||v.length>1200)error(label+'英文版欄位不正確')})}
+ function localize(s,lang){if(lang!=='en')return s;const pick=(o,keys)=>{if(!o.en)return o;const x={...o};keys.forEach(k=>{if(o.en[k])x[k]=o.en[k]});if(o.en.flavors?.length)x.flavors=o.en.flavors;return x};return {...s,products:s.products.map(p=>pick(p,enProductKeys)),treats:s.treats.map(t=>pick(t,enTreatKeys))}}
  function validateProduct(p){
   if(typeof p.active!=='boolean')error('上架狀態必須是布林值');if(!p.brew||!p.profile)error('缺少沖煮與風味示意設定');['ratio','temperature','grind'].forEach(k=>text(p.brew[k],'沖煮設定',150));Object.values(p.profile).forEach(v=>integer(v,'風味示意分數',1,5));text(p.id,'商品 ID',60);if(!/^[a-z0-9-]+$/.test(p.id))error('商品 ID 僅可含小寫英文字、數字與連字號');
   ['name','country','region','variety','process','roast','description'].forEach(k=>text(p[k],k,1200));
@@ -40,8 +44,9 @@
   if(!Array.isArray(p.variants)||p.variants.length<1||p.variants.length>3)error('請保留 200g 咖啡豆規格');
   p.variants.forEach((v,i)=>{if(i===0){if(v.format!==undefined||v.grams!==200||v.sku!==`${p.id}-200`)error('SKU 與克數不一致')}else{if(!extraFormats.includes(v.format)||v.sku!==`${p.id}-${v.format}`)error('濾掛／濾泡規格設定不正確');integer(v.count,'每盒入數',1,100);integer(v.grams,'每盒淨重',1,5000)}integer(v.price,'價格',1,100000);integer(v.stock,'庫存包數',0,100000)});
   if(new Set(p.variants.map(v=>v.sku)).size!==p.variants.length)error('規格重複');
+  validateEn(p.en,enProductKeys,'商品');
  }
- function validateTreat(t){text(t.id,'點心 ID',60);if(!/^[a-z0-9-]+$/.test(t.id))error('點心 ID 僅可含小寫英文字、數字與連字號');['name','spec','shelf'].forEach(k=>text(t[k],k,60));text(t.description,'點心說明',300);if(!imageURL(t.image))error('圖片需為 assets/ 路徑、HTTPS 網址或 PNG/JPEG/WebP 圖片');if(typeof t.active!=='boolean')error('上架狀態必須是布林值');integer(t.price,'價格',1,100000);integer(t.stock,'庫存數量',0,100000)}
+ function validateTreat(t){text(t.id,'點心 ID',60);if(!/^[a-z0-9-]+$/.test(t.id))error('點心 ID 僅可含小寫英文字、數字與連字號');['name','spec','shelf'].forEach(k=>text(t[k],k,60));text(t.description,'點心說明',300);if(!imageURL(t.image))error('圖片需為 assets/ 路徑、HTTPS 網址或 PNG/JPEG/WebP 圖片');if(typeof t.active!=='boolean')error('上架狀態必須是布林值');integer(t.price,'價格',1,100000);integer(t.stock,'庫存數量',0,100000);validateEn(t.en,enTreatKeys,'點心')}
  const timestamp=v=>{if(typeof v!=='string'||!Number.isFinite(Date.parse(v)))error('紀錄時間格式不正確')};
  const customerFields=(c,label='訂購人')=>{text(c?.name,label,80);text(c?.email,'電子信箱',150);text(c?.phone,'電話',30);text(c?.address,'地址',300)};
  function validate(s){
@@ -125,5 +130,5 @@
  function cloudCatalog(s=state()){const c={version:s.version};cloudKeys.forEach(k=>c[k]=copy(s[k]));return c}
  function applyCloud(c){if(c?.version!==3||cloudKeys.some(k=>c[k]===undefined))error('雲端資料格式不相容');const s=state();if(cloudKeys.every(k=>canon(s[k])===canon(c[k])))return false;cloudKeys.forEach(k=>s[k]=copy(c[k]));const hasTreat=id=>s.treats.some(t=>t.id===id),hasProduct=id=>s.products.some(p=>p.id===id);s.cart=s.cart.filter(i=>i.kind==='treat'?hasTreat(i.treatId):s.products.some(p=>p.id===i.productId&&p.variants.some(v=>v.sku===i.sku)));s.orders=s.orders.filter(o=>o.items.every(i=>i.kind==='treat'?hasTreat(i.treatId):hasProduct(i.productId)));commit(s);return true}
  window.addEventListener('storage',event=>{if(event.key===KEY)window.dispatchEvent(new CustomEvent('coffee:change'))});
- window.CoffeeStore={state,cloudCatalog,applyCloud,cartDetails,addCart,addTreat,setCart,createOrder,updateOrder,saveProduct,deleteProduct,adjustStock,saveTreat,adjustTreatStock,addBatch,updateBatch,createSubscription,updateSubscription,saveSettings,exportData,importData,reset,today,validate,imageURL,statuses,payments,subStatuses,deliveries,deliveryLabels,formats,grinds,grindLabels,roasts,roastLabels,defaultRoast,roastPrefs,plans,formatOf,variantLabel,lineKey};
+ window.CoffeeStore={state,localize,cloudCatalog,applyCloud,cartDetails,addCart,addTreat,setCart,createOrder,updateOrder,saveProduct,deleteProduct,adjustStock,saveTreat,adjustTreatStock,addBatch,updateBatch,createSubscription,updateSubscription,saveSettings,exportData,importData,reset,today,validate,imageURL,statuses,payments,subStatuses,deliveries,deliveryLabels,formats,grinds,grindLabels,roasts,roastLabels,defaultRoast,roastPrefs,plans,formatOf,variantLabel,lineKey};
 })();

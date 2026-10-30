@@ -55,3 +55,6 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .content-live .primary-button{display:inline-block;padding:11px 18px;text-decoration:none;font-size:14px}
 .content-live span{font-size:12px;color:#5e594b;flex:1 1 240px}
 .content-live .secondary-button{display:inline-block;padding:11px 18px;text-decoration:none;font-size:14px}
+.en-fields{margin-top:18px;padding:12px 16px;border:1px dashed #cdbfa6;background:#fbf8f2}
+.en-fields summary{cursor:pointer;font-weight:600;font-size:14px}
+.en-fields .muted{margin:8px 0 0;font-size:12px}
