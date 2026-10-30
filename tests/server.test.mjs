@@ -46,7 +46,10 @@ const NOTIFY_ENV = { ...ENV, LINE_CHANNEL_ACCESS_TOKEN: 'line-token', LINE_OWNER
 const MAIL_ENV = { ...NOTIFY_ENV, OWNER_EMAIL: 'owner@example.com' };
 const customer = { name: '林小姐', email: 'buyer@example.com', phone: '0912345678', address: '7-ELEVEN 深坑門市' };
 const cart = [{ productId: 'guji', sku: 'guji-200', quantity: 2, roast: 'medium', grind: 'pour' }, { kind: 'treat', treatId: 'financier', quantity: 1 }];
-const post = (body, env = ENV) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { origin: 'https://encountercoffee2025.com', 'content-type': 'application/json' }, body: JSON.stringify(body) }), env);
+const STORE = { id: '131386', name: '深坑門市', address: '新北市深坑區北深路三段 1 號', type: 'UNIMARTC2C' };
+// 7-ELEVEN 取貨的測試訂單預設帶入地圖選好的門市（測試「沒選門市」時明確傳 store: null）
+const withStore = body => body.delivery === '711' && !('store' in body) ? { ...body, store: STORE } : body;
+const post = (body, env = ENV) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { origin: 'https://encountercoffee2025.com', 'content-type': 'application/json' }, body: JSON.stringify(withStore(body)) }), env);
 const get = (query, env = ENV) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout' + query, { headers: { origin: 'http://localhost:4173' } }), env);
 async function ecpay(params, type = 'notify', env = ENV) {
   const signed = { ...params, CheckMacValue: params.CheckMacValue ?? await checkMacValue(params, STAGE.hashKey, STAGE.hashIV) };
@@ -111,6 +114,37 @@ await check('create order rejects bad input with a readable message', async () =
   }
   assert.equal(tables.orders.length, 0);
   assert.equal(tables.site_state[0].version, 1);
+});
+
+await check('convenience-store pickup needs a store picked on the map; address comes from the store', async () => {
+  reset();
+  for (const [body, pattern] of [
+    [{ action: 'create', cart, customer, delivery: '711', store: null }, /選擇取貨門市/],
+    [{ action: 'create', cart, customer, delivery: 'family', store: { id: '<x>', name: 'x' } }, /選擇取貨門市/],
+    [{ action: 'create', cart, customer, delivery: 'family', store: STORE }, /不符/]
+  ]) { const res = await post(body); assert.equal(res.status, 400); assert.match((await res.json()).error, pattern); }
+  assert.equal((await post({ action: 'create', cart, customer: { ...customer, address: '亂填的地址' }, delivery: '711' })).status, 200);
+  const o = tables.orders[0].data;
+  assert.deepEqual(o.store, { id: '131386', name: '深坑門市', address: '新北市深坑區北深路三段 1 號', type: 'UNIMARTC2C' });
+  assert.equal(o.customer.address, '深坑門市（店號 131386）新北市深坑區北深路三段 1 號');
+  const home = await post({ action: 'create', cart, customer: { ...customer, address: '新北市深坑區 1 號' }, delivery: 'home' });
+  assert.equal(home.status, 200);
+  assert.equal(tables.orders[1].data.store, undefined);
+  const cfg = await (await get('?config')).json();
+  assert.equal(cfg.map.action, 'https://logistics-stage.ecpay.com.tw/Express/map');
+  assert.equal(cfg.map.merchantId, '2000933');
+  assert.equal(cfg.map.replyURL, 'https://demo.supabase.co/functions/v1/ecpay?type=store');
+});
+
+await check('map reply sends the shopper back with the chosen store; bad data is dropped', async () => {
+  const reply = (fields, extra = 'checkout') => handleEcpay(new Request('https://demo.supabase.co/functions/v1/ecpay?type=store', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ MerchantID: '2000933', LogisticsSubType: 'FAMIC2C', CVSStoreID: '006598', CVSStoreName: '全家深坑店', CVSAddress: '新北市深坑區深坑街 1 號', CVSTelephone: '', CVSOutSide: '0', ExtraData: extra, ...fields }).toString() }), ENV);
+  const ok = await reply({});
+  assert.equal(ok.status, 303);
+  const loc = new URL(ok.headers.get('location'));
+  assert.equal(loc.pathname, '/checkout.html');
+  assert.deepEqual(Object.fromEntries(loc.searchParams), { store: '006598', storeName: '全家深坑店', storeAddr: '新北市深坑區深坑街 1 號', storeType: 'FAMIC2C' });
+  assert.equal(new URL((await reply({}, 'subscribe')).headers.get('location')).pathname, '/subscribe.html');
+  assert.equal((await reply({ CVSStoreID: '<script>' })).headers.get('location'), 'https://encountercoffee2025.com/checkout.html');
 });
 
 await check('stock changed by another order meanwhile: retry with fresh data, no duplicate order', async () => {

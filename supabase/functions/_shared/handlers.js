@@ -1,6 +1,6 @@
 // 兩個 Edge Function 的處理邏輯（index.ts 只負責把請求交給這裡，Node 測試也直接呼叫這裡）。
 import { placeOrder, newOrderId, newToken, publicOrder } from './core.js';
-import { ecpayConfig, paymentForm, verifyMac, paymentTypeLabel } from './ecpay.js';
+import { ecpayConfig, mapConfig, paymentForm, verifyMac, paymentTypeLabel } from './ecpay.js';
 import { notifyPaid } from './notify.js';
 import { db } from './db.js';
 
@@ -35,7 +35,7 @@ export async function handleCheckout(req, env) {
   try {
     const cfg = ecpayConfig(env), D = db(env), url = new URL(req.url);
     if (req.method === 'GET') {
-      if (url.searchParams.has('config')) return reply(200, { mode: cfg.mode });
+      if (url.searchParams.has('config')) return reply(200, { mode: cfg.mode, map: mapConfig(env) });
       const row = await findOrder(D, url.searchParams.get('id'), url.searchParams.get('t'));
       return reply(200, { mode: cfg.mode, order: publicOrder(row.data) });
     }
@@ -74,9 +74,17 @@ export async function handleCheckout(req, env) {
 export async function handleEcpay(req, env) {
   const url = new URL(req.url), type = url.searchParams.get('type') || 'notify';
   const text = (body, status = 200) => new Response(body, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-  if (req.method !== 'POST') return type === 'return' ? new Response(null, { status: 303, headers: { Location: site(env) + '/checkout.html' } }) : text('Method not allowed', 405);
-  const cfg = ecpayConfig(env), D = db(env);
+  if (req.method !== 'POST') return type === 'return' || type === 'store' ? new Response(null, { status: 303, headers: { Location: site(env) + '/checkout.html' } }) : text('Method not allowed', 405);
   const params = Object.fromEntries(new URLSearchParams(await req.text()));
+  // 超商電子地圖選好門市：帶著門市資料回到購物車（或月費訂購頁）。地圖回傳沒有簽章，只用來預先填入顧客自己的表單。
+  if (type === 'store') {
+    const page = params.ExtraData === 'subscribe' ? 'subscribe.html' : 'checkout.html';
+    const id = String(params.CVSStoreID || ''), kind = String(params.LogisticsSubType || '');
+    const ok = /^[A-Za-z0-9]{1,10}$/.test(id) && ['UNIMARTC2C', 'FAMIC2C', 'UNIMART', 'FAMI'].includes(kind);
+    const query = ok ? '?' + new URLSearchParams({ store: id, storeName: String(params.CVSStoreName || '').trim().slice(0, 60), storeAddr: String(params.CVSAddress || '').trim().slice(0, 120), storeType: kind }) : '';
+    return new Response(null, { status: 303, headers: { Location: `${site(env)}/${page}${query}` } });
+  }
+  const cfg = ecpayConfig(env), D = db(env);
   const valid = await verifyMac(params, cfg), tradeNo = String(params.MerchantTradeNo || '');
   const lookup = async () => TRADE.test(tradeNo) ? (await D.get(`orders?trade_nos=cs.%7B${tradeNo}%7D&select=id,token,data,version`))[0] : undefined;
 

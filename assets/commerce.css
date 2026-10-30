@@ -62,3 +62,7 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .order-status-items li{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.08)}
 .order-status-items .summary-total{font-weight:600;border-bottom:0}
 .pay-mode-note{background:#fff4dc;border:1px solid #e8cf98;color:#6b4d12;padding:8px 12px}
+.store-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:-4px 0 14px}
+.store-pick .secondary-button{padding:9px 16px;cursor:pointer}
+.store-pick .muted{font-size:12px}
+#checkout-form input[readonly]{background:#f6f2ea;cursor:default}

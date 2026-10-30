@@ -6,6 +6,14 @@ export const ECPAY_URL = {
 // 綠界公開的測試特店（僅限測試環境，不會真的扣款）
 const STAGE_MERCHANT = { merchantId: '3002607', hashKey: 'pwFHCqoQZGmho4w6', hashIV: 'EkRm7iFT261dpevs' };
 
+// 超商電子地圖（C2C 店到店）：測試環境用綠界公開的 C2C 測試特店 2000933；正式環境用自己的特店編號
+export const MAP_URL = { stage: 'https://logistics-stage.ecpay.com.tw/Express/map', prod: 'https://logistics.ecpay.com.tw/Express/map' };
+export const STORE_TYPES = { '711': 'UNIMARTC2C', family: 'FAMIC2C' };
+export function mapConfig(env) {
+  const mode = env.ECPAY_MODE === 'prod' ? 'prod' : 'stage';
+  return { action: MAP_URL[mode], merchantId: mode === 'prod' ? env.ECPAY_LOGISTICS_MERCHANT_ID || env.ECPAY_MERCHANT_ID : '2000933', types: STORE_TYPES, replyURL: env.SUPABASE_URL + '/functions/v1/ecpay?type=store' };
+}
+
 export function ecpayConfig(env) {
   const mode = env.ECPAY_MODE === 'prod' ? 'prod' : 'stage';
   const merchant = mode === 'prod' || env.ECPAY_MERCHANT_ID

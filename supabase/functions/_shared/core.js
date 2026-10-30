@@ -31,11 +31,23 @@ export function placeOrder(catalog, input, id) {
     else S.addCart(String(line?.productId ?? ''), String(line?.sku ?? ''), quantity, line?.grind ? String(line.grind) : undefined, line?.roast ? String(line.roast) : undefined);
   }
   const c = input.customer || {};
+  const store = pickedStore(input);
   const order = S.createOrder(
-    { name: String(c.name ?? '').trim(), email: String(c.email ?? '').trim(), phone: String(c.phone ?? '').trim(), address: String(c.address ?? '').trim() },
+    { name: String(c.name ?? '').trim(), email: String(c.email ?? '').trim(), phone: String(c.phone ?? '').trim(), address: store ? `${store.name}（店號 ${store.id}）${store.address}` : String(c.address ?? '').trim() },
     { delivery: String(input.delivery || ''), note: String(input.note || ''), id, notes: '', historyText: '建立訂單並保留庫存，等待付款' }
   );
+  if (store) order.store = store;
   return { order, catalog: S.cloudCatalog() };
+}
+
+const STORE_TYPE = { '711': 'UNIMARTC2C', family: 'FAMIC2C' };
+function pickedStore(input) {
+  const type = STORE_TYPE[input.delivery];
+  if (!type) return null;
+  const s = input.store || {}, clean = (v, n) => String(v ?? '').replace(/[<>\r\n]/g, ' ').trim().slice(0, n);
+  if (!/^[A-Za-z0-9]{1,10}$/.test(String(s.id ?? '')) || !clean(s.name, 60)) throw new Error('請先選擇取貨門市');
+  if (s.type && s.type.replace(/C2C$/, '') !== type.replace(/C2C$/, '')) throw new Error('取貨門市與配送方式不符，請重新選擇門市');
+  return { id: String(s.id), name: clean(s.name, 60), address: clean(s.address, 120), type };
 }
 
 // 品項說明：例如「衣索比亞・耶加雪菲 水洗｜200g 咖啡豆 · 中焙 · 手沖研磨」
