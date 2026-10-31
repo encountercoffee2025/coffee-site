@@ -2,15 +2,18 @@
 // 預設值直接讀取 sources 列出的網頁原始 HTML；由程式產生的文字（商店頁面開頭）與不在 HTML 裡的圖片在此列出預設值。
 // 每個項目：[key, 名稱, 預設值（文字或圖片網址，選填）, 圖片說明預設值（選填）]
 window.COFFEE_CONTENT_MAP = [
-  { id: 'site', name: '頁首與頁尾', sources: ['index.html', 'story.html', 'shop.html'], edit: [['shop.html', '頁首與頁尾']], note: '所有頁面共用：改一次，每一頁都會跟著變。', groups: [
+  { id: 'site', name: '頁首與頁尾', sources: ['index.html', 'story.html', 'shop.html'], edit: [['shop.html', '頁首與頁尾']], note: '所有頁面共用（含深色頁尾）：改一次，每一頁都會跟著變。', groups: [
     { title: '頁首', items: [
       ['site.brand.sub', 'Logo 下方英文小字'],
       ['site.nav.home', '選單：首頁'], ['site.nav.shop', '選單：咖啡選購'], ['site.nav.treats', '選單：點心'], ['site.nav.subscribe', '選單：月費訂購'],
       ['site.nav.story', '選單：品牌故事'], ['site.nav.cart', '選單：購物車']
     ] },
     { title: '頁尾', items: [
-      ['site.footer.copyright', '版權文字（首頁、品牌故事）'], ['site.footer.explore', '品牌故事頁尾連結'],
-      ['site.footer.tag', '商店頁尾品牌標語（一遇 · 之後的文字）']
+      ['home.footer.tagline', '頁尾標語'],
+      ['home.footer.col1', '第 1 欄標題'], ['home.footer.all', '第 1 欄：所有咖啡'], ['home.footer.treats', '第 1 欄：手作點心'], ['home.footer.subscribe', '第 1 欄：月費訂購'], ['home.footer.flavor', '第 1 欄：依風味選豆'],
+      ['home.footer.col2', '第 2 欄標題'], ['home.footer.story', '第 2 欄：品牌故事'],
+      ['home.footer.col3', '第 3 欄標題'], ['home.footer.faq', '第 3 欄：常見問題'], ['home.footer.contact', '第 3 欄：聯絡與合作（點了會寄信到客服信箱）'], ['home.footer.checkout', '第 3 欄：購物車與結帳'],
+      ['home.footer.top', '回到頂部連結'], ['site.footer.copyright', '最下方版權文字']
     ] }
   ] },
   { id: 'index.html', name: '首頁', sources: ['index.html'], groups: [
@@ -38,13 +41,6 @@ window.COFFEE_CONTENT_MAP = [
       ['home.faq.q1', '問題 1'], ['home.faq.a1', '回答 1'], ['home.faq.q2', '問題 2'], ['home.faq.a2', '回答 2'],
       ['home.faq.q3', '問題 3'], ['home.faq.a3', '回答 3'], ['home.faq.q4', '問題 4'], ['home.faq.a4', '回答 4'],
       ['home.faq.q5', '問題 5（回答含連結，固定不變）']
-    ] },
-    { title: '頁尾', items: [
-      ['home.footer.tagline', '頁尾標語'],
-      ['home.footer.col1', '第 1 欄標題'], ['home.footer.all', '第 1 欄：所有咖啡'], ['home.footer.treats', '第 1 欄：手作點心'], ['home.footer.subscribe', '第 1 欄：月費訂購'], ['home.footer.flavor', '第 1 欄：依風味選豆'],
-      ['home.footer.col2', '第 2 欄標題'], ['home.footer.story', '第 2 欄：品牌故事'],
-      ['home.footer.col3', '第 3 欄標題'], ['home.footer.faq', '第 3 欄：常見問題'], ['home.footer.contact', '第 3 欄：聯絡與合作（點了會寄信到客服信箱）'], ['home.footer.checkout', '第 3 欄：購物車與結帳'],
-      ['home.footer.top', '回到頂部連結']
     ] }
   ] },
   { id: 'store', name: '商店頁面', sources: [], edit: [['shop.html', '咖啡選購'], ['treats.html', '點心'], ['subscribe.html', '月費訂購']], note: '各商店頁最上方的標題與介紹。商品本身請到「商品管理」「點心管理」修改。', groups: [
