@@ -37,9 +37,18 @@
 .ce-dialog .ce-btn{border-color:#d9ddd4;color:#292d29}
 .ce-dialog .ce-btn.ce-primary{color:#fff}
 .ce-dim{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.35)}
-.ce-toast{position:fixed;z-index:10001;left:50%;bottom:84px;transform:translateX(-50%);background:#292d29;color:#fff;padding:10px 16px;border-radius:6px;font-size:14px;max-width:calc(100vw - 32px)}
-body.ce-editing{padding-bottom:90px}
-@media (max-width:640px){.ce-bar{padding:8px 10px calc(8px + env(safe-area-inset-bottom));gap:6px;font-size:13px}.ce-bar>strong{display:none}.ce-bar .ce-actions{margin-left:0;width:100%;flex-wrap:nowrap;justify-content:space-between}.ce-btn{padding:7px 9px;font-size:13px}.ce-toast{bottom:104px}.ce-photo{font-size:12px;padding:6px 10px}}`;
+.ce-toast{position:fixed;z-index:10001;left:50%;top:16px;transform:translateX(-50%);background:#292d29;color:#fff;padding:10px 16px;border-radius:6px;font-size:14px;max-width:calc(100vw - 32px)}
+.ce-text.ce-current{outline:2px solid #b07a34}
+.ce-style{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding-bottom:8px;border-bottom:1px solid rgba(246,239,227,.18);font-size:13px}
+.ce-style[hidden]{display:none}
+.ce-style .ce-name{flex:1 1 100%;opacity:.8;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ce-style .ce-field{display:flex;align-items:center;gap:5px}
+.ce-style output{min-width:3.4em;text-align:center}
+.ce-style .ce-btn{padding:4px 9px}
+.ce-style input[type=number],.ce-style select{width:4.6em;padding:4px 6px;border:1px solid rgba(246,239,227,.45);border-radius:4px;background:#2c2620;color:#f6efe3;font-size:13px}
+.ce-style input[type=color]{width:34px;height:28px;padding:1px;border:1px solid rgba(246,239,227,.45);border-radius:4px;background:#2c2620;cursor:pointer}
+body.ce-editing{padding-bottom:150px}
+@media (max-width:640px){.ce-bar{padding:8px 10px calc(8px + env(safe-area-inset-bottom));gap:6px;font-size:13px}.ce-bar>strong{display:none}.ce-bar .ce-actions{margin-left:0;width:100%;flex-wrap:nowrap;justify-content:space-between}.ce-btn{padding:7px 9px;font-size:13px}.ce-photo{font-size:12px;padding:6px 10px}}`;
   document.head.append(style);
 
   const bar = document.createElement('div');
@@ -97,8 +106,13 @@ body.ce-editing{padding-bottom:90px}
       span.addEventListener('keydown', event => { if (event.key === 'Enter' && !plain) { event.preventDefault(); document.execCommand('insertLineBreak') } event.stopPropagation() });
       span.addEventListener('keyup', event => event.stopPropagation());
       span.addEventListener('input', refresh);
-      return { key, el, span, def, saved: value };
+      const style = C.cleanStyle(content.texts[key]?.[lang + 'Style']);
+      C.applyStyle(el, style);
+      const t = { key, el, span, def, saved: value, style, savedStyle: JSON.stringify(style) };
+      span.addEventListener('focus', () => pick(t));
+      return t;
     });
+    const styleChanged = t => JSON.stringify(t.style) !== t.savedStyle;
     const read = span => span.innerText.replace(/ /g, ' ').replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 
     // 圖片：在每張可編輯圖片左上角放「更換圖片」按鈕。挑豆工藝的圖片會跟著目前選取的步驟切換。
@@ -167,14 +181,45 @@ body.ce-editing{padding-bottom:90px}
     }
 
     // 工具列：顯示修改數量、儲存、放棄與離開。
-    bar.innerHTML = `<strong>${modeName}</strong><span class="ce-count"></span><div class="ce-actions"><a class="ce-btn" href="admin-orders.html#content" data-leave>回到後台</a><a class="ce-btn" href="${esc(leaveHref)}" data-leave>離開編輯</a><button type="button" class="ce-btn" data-discard>放棄修改</button><button type="button" class="ce-btn ce-primary" data-save>儲存</button></div>`;
+    bar.innerHTML = `<div class="ce-style" hidden><span class="ce-name"></span><span class="ce-field">字級<button type="button" class="ce-btn" data-size="-10" aria-label="縮小字">A−</button><output data-size-out>100%</output><button type="button" class="ce-btn" data-size="10" aria-label="放大字">A+</button></span><label class="ce-field">顏色<input type="color" data-color></label><label class="ce-field">每行最多<input type="number" min="4" max="80" step="1" placeholder="自動" data-width>字</label><label class="ce-field">行距<select data-lh><option value="">自動</option>${[1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.6].map(v => `<option value="${v}">${v}</option>`).join('')}</select></label><button type="button" class="ce-btn" data-style-reset>還原樣式</button></div><strong>${modeName}</strong><span class="ce-count"></span><div class="ce-actions"><a class="ce-btn" href="admin-orders.html#content" data-leave>回到後台</a><a class="ce-btn" href="${esc(leaveHref)}" data-leave>離開編輯</a><button type="button" class="ce-btn" data-discard>放棄修改</button><button type="button" class="ce-btn ce-primary" data-save>儲存</button></div>`;
     const count = bar.querySelector('.ce-count'), saveButton = bar.querySelector('[data-save]'), discard = bar.querySelector('[data-discard]');
+    // 文字樣式：點一段文字後，工具列上方出現字級、顏色、每行字數與行距；只影響目前這個語言的頁面。
+    const panel = bar.querySelector('.ce-style'), sizeOut = panel.querySelector('[data-size-out]'), colorIn = panel.querySelector('[data-color]'), widthIn = panel.querySelector('[data-width]'), lhIn = panel.querySelector('[data-lh]');
+    let current = null;
+    const toHex = c => { const m = c.match(/\d+(\.\d+)?/g); return m ? '#' + m.slice(0, 3).map(v => Math.round(+v).toString(16).padStart(2, '0')).join('') : '#000000' };
+    function showStyle() {
+      const s = current.style;
+      sizeOut.textContent = (s.size || 100) + '%';
+      colorIn.value = s.color || toHex(getComputedStyle(current.el).color);
+      widthIn.value = s.width ?? '';
+      lhIn.value = s.lh ? String(s.lh) : '';
+    }
+    function pick(t) {
+      if (current) current.span.classList.remove('ce-current');
+      current = t; t.span.classList.add('ce-current');
+      panel.hidden = false;
+      panel.querySelector('.ce-name').textContent = '目前選取：' + (items[t.key]?.label || t.key) + (en ? '（英文頁面）' : '');
+      showStyle();
+    }
+    function setStyle(change) {
+      if (!current) return;
+      current.style = C.cleanStyle({ ...current.style, ...change });
+      C.applyStyle(current.el, current.style);
+      showStyle(); refresh();
+    }
+    panel.addEventListener('keydown', event => event.stopPropagation());
+    panel.querySelectorAll('[data-size]').forEach(b => b.onclick = () => setStyle({ size: Math.min(300, Math.max(50, (current?.style.size || 100) + Number(b.dataset.size))) }));
+    colorIn.addEventListener('input', () => setStyle({ color: colorIn.value }));
+    widthIn.addEventListener('change', () => { const v = widthIn.value.trim(); if (v !== '' && !C.cleanStyle({ width: Number(v) }).width) { toast('每行字數請填 4 到 80 之間的整數，留空是自動'); return showStyle() } setStyle({ width: v === '' ? undefined : Number(v) }) });
+    lhIn.addEventListener('change', () => setStyle({ lh: lhIn.value === '' ? undefined : Number(lhIn.value) }));
+    panel.querySelector('[data-style-reset]').onclick = () => setStyle({ size: undefined, color: undefined, width: undefined, lh: undefined });
+
     let baseline = JSON.stringify(content.images), leaving = false;
-    const dirty = () => texts.filter(t => read(t.span) !== t.saved).length + Object.keys({ ...JSON.parse(baseline), ...content.images }).filter(k => JSON.stringify(JSON.parse(baseline)[k] || null) !== JSON.stringify(content.images[k] || null)).length;
+    const dirty = () => texts.filter(t => read(t.span) !== t.saved || styleChanged(t)).length + Object.keys({ ...JSON.parse(baseline), ...content.images }).filter(k => JSON.stringify(JSON.parse(baseline)[k] || null) !== JSON.stringify(content.images[k] || null)).length;
     function refresh() {
-      texts.forEach(t => { const v = read(t.span); t.span.classList.toggle('ce-changed', v !== t.saved); if (v) t.span.classList.remove('ce-invalid') });
+      texts.forEach(t => { const v = read(t.span); t.span.classList.toggle('ce-changed', v !== t.saved || styleChanged(t)); if (v) t.span.classList.remove('ce-invalid') });
       const n = dirty();
-      count.textContent = n ? `已修改 ${n} 處，記得按「儲存」` : '點文字直接修改；點 📷 更換圖片';
+      count.textContent = n ? `已修改 ${n} 處，記得按「儲存」` : '點文字直接修改（可調字級、顏色、每行字數）；點 📷 更換圖片';
       saveButton.disabled = !n; discard.disabled = !n;
     }
     refresh();
@@ -188,17 +233,18 @@ body.ce-editing{padding-bottom:90px}
       const next = { texts: { ...content.texts }, images: { ...content.images }, plans: content.plans };
       for (const t of texts) {
         const value = read(t.span);
-        if (value === t.saved) continue;
+        if (value === t.saved && !styleChanged(t)) continue;
         const entry = { ...(content.texts[t.key] || {}) };
         if (value === t.def) delete entry[lang]; else entry[lang] = value;
-        if (entry.zh === undefined && entry.en === undefined) delete next.texts[t.key]; else next.texts[t.key] = entry;
+        if (Object.keys(t.style).length) entry[lang + 'Style'] = t.style; else delete entry[lang + 'Style'];
+        if (['zh', 'en', 'zhStyle', 'enStyle'].every(f => entry[f] === undefined)) delete next.texts[t.key]; else next.texts[t.key] = entry;
       }
       saveButton.disabled = true; saveButton.textContent = '儲存中…';
       try {
         const { error } = await sb.from('site_state').upsert({ id: 'content', data: next, updated_at: new Date().toISOString() });
         if (error) throw new Error(error.message);
         content.texts = next.texts;
-        texts.forEach(t => t.saved = read(t.span));
+        texts.forEach(t => { t.saved = read(t.span); t.savedStyle = JSON.stringify(t.style) });
         baseline = JSON.stringify(content.images);
         try { localStorage.setItem(C.contentCache, JSON.stringify(next)) } catch (_) {}
         toast('已儲存，客人重新整理頁面就會看到。');

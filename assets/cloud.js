@@ -36,6 +36,31 @@
     if (el.firstChild) frag.append(' ');
     el.prepend(frag);
   }
+  // 文字樣式（中英文各自保存 zhStyle / enStyle）：size 字級（原本大小的百分比）、color 顏色、width 每行最多幾個字、lh 行距。
+  function cleanStyle(s) {
+    if (!s || typeof s !== 'object') return {};
+    const out = {}, n = Number(s.size), w = Number(s.width), lh = Number(s.lh);
+    if (Number.isInteger(n) && n >= 50 && n <= 300 && n !== 100) out.size = n;
+    if (typeof s.color === 'string' && /^#[0-9a-f]{6}$/i.test(s.color)) out.color = s.color.toLowerCase();
+    if (Number.isInteger(w) && w >= 4 && w <= 80) out.width = w;
+    if (Number.isFinite(lh) && lh >= 0.8 && lh <= 3) out.lh = Math.round(lh * 10) / 10;
+    return out;
+  }
+  // 字級以網頁原本的大小為基準放大縮小，手機、電腦各自按比例；視窗大小改變時重新計算。
+  function applyStyle(el, style) {
+    const s = cleanStyle(style), json = JSON.stringify(s);
+    if (el.dataset.contentStyle === undefined && json === '{}') return;
+    if (el.dataset.contentStyle === json && el.dataset.contentStyleW === String(innerWidth)) return;
+    el.style.fontSize = '';
+    if (s.size) el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * s.size / 100).toFixed(1) + 'px';
+    el.style.color = s.color || '';
+    el.style.maxWidth = s.width ? s.width + 'em' : '';
+    el.style.lineHeight = s.lh ? String(s.lh) : '';
+    if (json === '{}') { delete el.dataset.contentStyle; delete el.dataset.contentStyleW; if (!el.getAttribute('style')) el.removeAttribute('style') }
+    else { el.dataset.contentStyle = json; el.dataset.contentStyleW = String(innerWidth) }
+  }
+  let resizeTimer;
+  window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => document.querySelectorAll('[data-content-style]').forEach(el => applyStyle(el, JSON.parse(el.dataset.contentStyle))), 150) });
   let content = { texts: {}, images: {}, plans: {} }, paused = false;
   const basePlans = JSON.parse(JSON.stringify(window.COFFEE_PLANS || []));
   function applyContent(c) {
@@ -45,6 +70,7 @@
     document.querySelectorAll('[data-content]').forEach(el => {
       // 中文頁面套用 zh、英文頁面套用 en；該語言沒有修改時保留原本的文字（英文頁維持原本翻譯）。
       const raw = content.texts[el.dataset.content], o = raw && (en ? raw.en : raw.zh) ? raw : null;
+      applyStyle(el, raw?.[en ? 'enStyle' : 'zhStyle']);
       if (el.dataset.contentDefault === undefined) { if (!o) return; el.dataset.contentDefault = readText(el); }
       const value = o ? (en ? o.en : o.zh) : el.dataset.contentDefault;
       if (readText(el) !== value) writeText(el, value);
@@ -103,7 +129,7 @@
     form.submit();
   }
   const shared = {
-    url: CLOUD_URL, key: CLOUD_KEY, contentCache: CONTENT_CACHE, pause: () => { paused = true }, okImage, readText, writeText, uploadImage, getContent: () => content, setContent: c => { content = c },
+    url: CLOUD_URL, key: CLOUD_KEY, contentCache: CONTENT_CACHE, pause: () => { paused = true }, okImage, readText, writeText, cleanStyle, applyStyle, uploadImage, getContent: () => content, setContent: c => { content = c },
     checkout: input => callCheckout('POST', { action: 'create', ...input }),
     repay: (id, token) => callCheckout('POST', { action: 'pay', id, token }),
     orderStatus: (id, token) => callCheckout('GET', null, `?id=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`),
@@ -308,6 +334,15 @@
     doc.querySelectorAll('[data-content-img]').forEach(el => out[el.dataset.contentImg] = { src: el.getAttribute('src'), alt: el.getAttribute('alt') || '' });
     return pageDefaults[page] = out;
   }
+  // 每個文字欄位的「文字樣式」：中文、英文各一組，空白表示維持網頁原本的樣子。
+  const styleFields = o => {
+    const row = (l, name) => {
+      const s = cleanStyle(o?.[l + 'Style']), at = f => `data-style="${l}.${f}"`;
+      return `<div class="content-style-row"><span>${name}</span><label>字級（%）<input type="number" ${at('size')} min="50" max="300" step="5" placeholder="100" value="${s.size ?? ''}"></label><label class="content-color"><span><input type="checkbox" ${at('colorOn')}${s.color ? ' checked' : ''}> 自訂顏色</span><input type="color" ${at('color')} value="${s.color || '#292d29'}"></label><label>每行最多幾個字<input type="number" ${at('width')} min="4" max="80" step="1" placeholder="自動" value="${s.width ?? ''}"></label><label>行距<input type="number" ${at('lh')} min="0.8" max="3" step="0.1" placeholder="自動" value="${s.lh ?? ''}"></label></div>`;
+    };
+    const used = o?.zhStyle || o?.enStyle;
+    return `<details class="content-style"${used ? ' open' : ''}><summary>文字樣式（字級、顏色、每行字數、行距）${used ? '・已設定' : ''}</summary><p class="muted">字級 100% 是原本大小；每行字數以中文字寬計算（英文約可放 2 倍字母）。留空就維持原本的樣子。</p>${row('zh', '中文頁面')}${row('en', '英文頁面')}</details>`;
+  };
   let contentTab = 'site';
   async function saveContent(next) {
     const { error } = await sb.from('site_state').upsert({ id: 'content', data: next, updated_at: new Date().toISOString() });
@@ -352,10 +387,13 @@
           return `<div class="content-item content-image" data-key="${esc(key)}" data-kind="img"><img src="${esc(cur.src)}" alt=""><div><strong>${esc(label)}</strong>${o ? '<span class="content-changed">已修改</span>' : ''}<label>圖片網址<input name="image" data-field="src" value="${esc(cur.src)}" required></label><label>圖片說明（給看不到圖的人與搜尋引擎）<input data-field="alt" value="${esc(o?.alt ?? def.alt)}" maxlength="120"></label><label>英文圖片說明（選填）<input data-field="altEn" value="${esc(o?.altEn || '')}" maxlength="160"></label>${o ? '<button type="button" class="text-button" data-reset>還原預設</button>' : ''}</div></div>`;
         }
         const def = defText(key), o = content.texts[key], zh = o?.zh ?? def, rows = Math.min(8, Math.max(2, Math.ceil(zh.length / 38) + zh.split('\n').length - 1));
-        return `<div class="content-item" data-key="${esc(key)}" data-kind="txt"><strong>${esc(label)}</strong>${o ? '<span class="content-changed">已修改</span>' : ''}<label>中文<textarea data-field="zh" rows="${rows}" maxlength="1000" required>${esc(zh)}</textarea></label><label>英文版（選填；留空時英文頁面維持原本的英文，也可以到英文頁面上直接修改）<textarea data-field="en" rows="2" maxlength="1500">${esc(o?.en || '')}</textarea></label>${o ? '<button type="button" class="text-button" data-reset>還原預設</button>' : ''}</div>`;
+        return `<div class="content-item" data-key="${esc(key)}" data-kind="txt"><strong>${esc(label)}</strong>${o ? '<span class="content-changed">已修改</span>' : ''}<label>中文<textarea data-field="zh" rows="${rows}" maxlength="1000" required>${esc(zh)}</textarea></label><label>英文版（選填；留空時英文頁面維持原本的英文，也可以到英文頁面上直接修改）<textarea data-field="en" rows="2" maxlength="1500">${esc(o?.en || '')}</textarea></label>${styleFields(o)}${o ? '<button type="button" class="text-button" data-reset>還原預設</button>' : ''}</div>`;
       };
       panel.innerHTML = `<div class="content-live">${(page.edit || [[page.id, page.name]]).map(([href, name]) => `<a class="primary-button" href="${esc(href)}?edit=1">✎ 在頁面上編輯「${esc(name)}」</a><a class="secondary-button" href="${esc(href)}?lang=en&amp;edit=1">✎ 英文頁面「${esc(name)}」</a>`).join('')}<span>${page.note ? esc(page.note) + ' ' : ''}直接在網頁上點文字修改、點 📷 更換圖片，最直覺；在英文頁面上修改的就是英文版。</span></div><form id="content-form"><p class="muted">換行會照樣顯示在網頁上。圖片可直接「上傳圖片」，建議橫式照片、寬度 1600px 左右。</p>${page.groups.map(g => `<h2 class="content-group">${esc(g.title)}</h2>${g.items.map(item).join('')}`).join('')}<div class="admin-actions content-save"><button class="primary-button" type="submit">儲存「${esc(page.name)}」</button></div></form>`;
       addUploaders(panel);
+      // 數字超出範圍時，打開收合的「文字樣式」，瀏覽器才能指出是哪一格。
+      panel.querySelector('form').addEventListener('invalid', event => { const d = event.target.closest('details'); if (d) d.open = true }, true);
+      panel.querySelectorAll('[data-style$=".color"]').forEach(input => input.addEventListener('input', () => { input.closest('.content-style-row').querySelector('[data-style$=".colorOn"]').checked = true }));
       panel.querySelectorAll('.content-image input[data-field=src]').forEach(input => input.addEventListener('input', () => { if (okImage(input.value.trim())) input.closest('.content-item').querySelector('img').src = input.value.trim() }));
       panel.querySelectorAll('[data-reset]').forEach(b => b.onclick = async () => {
         const key = b.closest('[data-key]').dataset.key, next = { texts: { ...content.texts }, images: { ...content.images }, plans: content.plans };
@@ -375,7 +413,14 @@
           } else {
             const zh = get('zh').replace(/\r/g, ''), en = get('en').replace(/\r/g, '');
             if (!zh) return toast('文字不能空白；想恢復原文請按「還原預設」');
-            const entry = { ...(zh !== defText(key) ? { zh } : {}), ...(en ? { en } : {}) };
+            const styles = {};
+            for (const l of ['zh', 'en']) {
+              const v = f => box.querySelector(`[data-style="${l}.${f}"]`), num = f => v(f).value.trim() === '' ? undefined : Number(v(f).value);
+              const raw = { size: num('size'), width: num('width'), lh: num('lh'), color: v('colorOn').checked ? v('color').value : undefined }, st = cleanStyle(raw);
+              if (['size', 'width', 'lh'].some(f => raw[f] !== undefined && raw[f] !== 100 && st[f] === undefined)) return toast('文字樣式超出範圍：字級 50–300%、每行 4–80 字、行距 0.8–3');
+              if (Object.keys(st).length) styles[l + 'Style'] = st;
+            }
+            const entry = { ...(zh !== defText(key) ? { zh } : {}), ...(en ? { en } : {}), ...styles };
             if (Object.keys(entry).length) next.texts[key] = entry; else delete next.texts[key];
           }
         }
