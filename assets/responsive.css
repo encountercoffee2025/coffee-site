@@ -53,5 +53,5 @@ html[data-lang=en] .site-header nav{gap:18px;letter-spacing:0}
 @media print{.social-float{display:none}}
 body:has(.social-float) #motion-toggle{margin-right:190px}
 @media (max-width:640px){body:has(.social-float) #motion-toggle{margin-right:64px}}
-body:has(.social-float) .closing-footer-inner{padding-right:90px}
-@media (max-width:640px){body:has(.social-float) .closing-footer-inner{padding-right:72px}}
+body:has(.social-float) .footer-bottom{padding-right:90px}
+@media (max-width:640px){body:has(.social-float) .footer-bottom{padding-right:72px}}
