@@ -84,7 +84,7 @@ window.COFFEE_CONTENT_MAP = [
       ['checkout.form.submit', '付款按鈕文字', '前往付款'], ['checkout.form.secure', '付款按鈕下方說明', '付款由綠界科技 ECPay 處理，本站不會經手你的卡號。']
     ] },
     { title: '訂單明細（右側）', items: [
-      ['checkout.sum.title', '標題', '訂單明細'], ['checkout.sum.count', '商品包數', '商品包數'], ['checkout.sum.grams', '咖啡總淨重', '咖啡總淨重'], ['checkout.sum.subtotal', '商品小計', '商品小計'], ['checkout.sum.total', '應付總額', '應付總額']
+      ['checkout.sum.title', '標題', '訂單明細'], ['checkout.sum.count', '商品包數', '商品包數'], ['checkout.sum.subtotal', '商品小計', '商品小計'], ['checkout.sum.total', '應付總額', '應付總額']
     ] }
   ] },
   { id: 'story.html', name: '品牌故事', sources: ['story.html'], groups: [
