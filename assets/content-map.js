@@ -82,7 +82,7 @@ window.COFFEE_CONTENT_MAP = [
       ['story.step4k', '第 4 道英文小字'], ['story.step4t', '第 4 道名稱'], ['story.step4p', '第 4 道說明']
     ] },
     { title: '03 烘焙專研', items: [
-      ['story.roastk', '英文小標'], ['story.roastt', '標題'], ['story.roastp', '說明'], ['story.roast.img', '烘焙機展示區背景圖'], ['story.stage1', '展示區：X3 標籤'], ['story.stage2', '展示區：RX700 標籤'],
+      ['story.roastk', '英文小標'], ['story.roastt', '標題'], ['story.roastp', '說明'], ['story.stage1', '展示區：X3 標籤'], ['story.stage2', '展示區：RX700 標籤'],
       ['story.roaster1t', '烘焙機 1 名稱'], ['story.roaster1s', '烘焙機 1 英文小字'], ['story.roaster1p', '烘焙機 1 說明'],
       ['story.roaster2t', '烘焙機 2 名稱'], ['story.roaster2s', '烘焙機 2 英文小字'], ['story.roaster2p', '烘焙機 2 說明'],
       ['story.freshk', '新鮮烘焙英文小標'], ['story.fresht', '新鮮烘焙標題'], ['story.freshp', '新鮮烘焙說明'], ['story.freshlink', '按鈕文字']

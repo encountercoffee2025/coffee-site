@@ -114,30 +114,11 @@ body:has(.social-float) .footer-bottom{padding-right:90px}
 .story-video-toggle:focus-visible{outline:3px solid #fffaf2;outline-offset:2px}
 .story-video-toggle>span{width:0;height:0;border-style:solid;border-width:8px 0 8px 13px;border-color:transparent transparent transparent #fffaf2;margin-left:3px}
 .story-video.is-playing .story-video-toggle>span{width:12px;height:14px;border:0;margin:0;border-left:4px solid #fffaf2;border-right:4px solid #fffaf2}
-/* 烘焙機展示區：烘焙工坊照片當背景，兩台去背機器並排 */
-.roaster-stage{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:6%;padding:56px 10% 34px;margin-bottom:36px;background:#1c1009;min-height:440px}
-.roaster-stage-bg{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;filter:brightness(.42) saturate(.9)}
-.roaster-stage::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse 30% 55% at 30% 62%,rgba(232,170,96,.32),transparent 70%),radial-gradient(ellipse 30% 55% at 70% 62%,rgba(232,170,96,.32),transparent 70%),linear-gradient(180deg,rgba(20,12,7,.15),rgba(20,12,7,.55))}
+/* 烘焙機展示區：兩台去背機器直接放在頁面底色上 */
+.roaster-stage{display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:6%;padding:20px 10% 10px;margin-bottom:36px}
 .roaster-stage-item{margin:0;display:flex;flex-direction:column;align-items:center;gap:16px}
-.roaster-stage-item img{display:block;height:min(330px,34vw);width:auto;max-width:100%;object-fit:contain;filter:drop-shadow(0 26px 22px rgba(0,0,0,.55)) drop-shadow(0 0 1px rgba(255,236,210,.35))}
-.roaster-stage-item figcaption{color:#fffaf2;font-size:13px;letter-spacing:.08em;padding:6px 14px;border:1px solid rgba(255,250,242,.4);border-radius:999px;background:rgba(20,12,7,.35)}
-@media(max-width:767px){.roaster-stage{min-height:0;padding:34px 18px 22px;gap:14px;margin-bottom:24px}.roaster-stage-item img{height:auto;width:100%;max-height:220px}.roaster-stage-item figcaption{font-size:10px;padding:5px 9px;letter-spacing:0;white-space:nowrap}}
-/* 烘焙機展示區背景版型（品牌故事頁 ?stage=b|c|d|e 預覽） */
-html[data-stage="b"] .roaster-stage{background:radial-gradient(ellipse 70% 80% at 50% 0%,#5a3a24 0%,#2a1a10 55%,#140c07 100%)}
-html[data-stage="b"] .roaster-stage-bg{display:none}
-html[data-stage="b"] .roaster-stage::before{background:linear-gradient(180deg,transparent 74%,rgba(255,220,180,.08) 74.3%,rgba(0,0,0,.35) 100%),radial-gradient(ellipse 22% 8% at 30% 78%,rgba(0,0,0,.55),transparent 70%),radial-gradient(ellipse 22% 8% at 70% 78%,rgba(0,0,0,.55),transparent 70%)}
-html[data-stage="c"] .roaster-stage{background:linear-gradient(180deg,#f3ece2 0%,#e9dfd1 72%,#ddd0bf 72.2%,#e6dbcc 100%)}
-html[data-stage="c"] .roaster-stage-bg{display:none}
-html[data-stage="c"] .roaster-stage::before{background:radial-gradient(ellipse 20% 7% at 30% 79%,rgba(60,40,25,.35),transparent 70%),radial-gradient(ellipse 20% 7% at 70% 79%,rgba(60,40,25,.35),transparent 70%)}
-html[data-stage="c"] .roaster-stage-item img{filter:drop-shadow(0 18px 18px rgba(60,40,25,.28))}
-html[data-stage="c"] .roaster-stage-item figcaption{color:rgb(var(--ink));border-color:rgb(var(--ink) / .3);background:rgba(255,250,242,.7)}
-html[data-stage="d"] .roaster-stage-bg{content:url(006e8999088e.jpg);filter:blur(22px) brightness(.55) saturate(1.2);transform:scale(1.15)}
-html[data-stage="d"] .roaster-stage::before{background:radial-gradient(ellipse 30% 55% at 30% 60%,rgba(255,200,140,.25),transparent 70%),radial-gradient(ellipse 30% 55% at 70% 60%,rgba(255,200,140,.25),transparent 70%),linear-gradient(180deg,rgba(20,12,7,0),rgba(20,12,7,.5))}
-html[data-stage="e"] .roaster-stage{background:rgb(var(--primary))}
-html[data-stage="e"] .roaster-stage-bg{display:none}
-html[data-stage="e"] .roaster-stage::before{content:"ROAST TO ORDER";display:flex;align-items:center;justify-content:center;font:600 clamp(48px,9vw,140px)/1 Inter,sans-serif;letter-spacing:.06em;color:rgba(255,250,242,.08);white-space:nowrap;background:radial-gradient(ellipse 60% 50% at 50% 100%,rgba(0,0,0,.28),transparent 70%)}
-html[data-stage="e"] .roaster-stage-item img{filter:drop-shadow(0 24px 20px rgba(0,0,0,.45))}
-html[data-stage="f"] .roaster-stage{background:none;padding-top:20px;padding-bottom:10px;min-height:0}
-html[data-stage="f"] .roaster-stage-bg,html[data-stage="f"] .roaster-stage::before{display:none}
-html[data-stage="f"] .roaster-stage-item img{filter:drop-shadow(0 18px 16px rgba(60,40,25,.22))}
-html[data-stage="f"] .roaster-stage-item figcaption{color:rgb(var(--ink));border-color:rgb(var(--ink) / .25);background:transparent}
+.roaster-stage-item img{display:block;width:auto;max-width:100%;object-fit:contain;filter:drop-shadow(0 18px 16px rgba(60,40,25,.22))}
+.roaster-stage-x3 img{height:min(300px,30vw)}
+.roaster-stage-rx700 img{height:min(350px,35vw)}
+.roaster-stage-item figcaption{color:rgb(var(--ink));font-size:13px;letter-spacing:.08em;padding:6px 14px;border:1px solid rgb(var(--ink) / .25);border-radius:999px}
+@media(max-width:767px){.roaster-stage{padding:10px 4px 6px;gap:14px;margin-bottom:24px}.roaster-stage-x3 img{height:auto;width:86%}.roaster-stage-rx700 img{height:auto;width:100%}.roaster-stage-item figcaption{font-size:10px;padding:5px 9px;letter-spacing:0;white-space:nowrap}}
