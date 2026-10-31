@@ -34,15 +34,20 @@ html[data-lang=en] .site-header nav{gap:18px;letter-spacing:0}
 .social-socialInstagram{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 62%,#285aeb 92%)}
 .social-socialFacebook{background:#1877f2}
 .social-socialLine{background:#06c755}
-.social-toggle{background:rgb(var(--primary))}
+.social-toggle{position:relative;width:60px;height:60px;background:linear-gradient(135deg,#e8a057,#b5651d);border:3px solid #fff;box-shadow:0 8px 22px rgba(181,101,29,.45)}
+.social-toggle svg{width:30px;height:30px}
+.social-toggle::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:3px solid #e8a057;animation:social-pulse 2.4s ease-out infinite;pointer-events:none}
+@keyframes social-pulse{0%{transform:scale(1);opacity:.75}100%{transform:scale(1.6);opacity:0}}
+.social-float.open .social-toggle::after,.social-float.open .social-hint{display:none}
+.social-hint{position:absolute;right:72px;bottom:14px;white-space:nowrap;background:#fff;color:#7a4517;font-size:14px;font-weight:600;letter-spacing:.04em;padding:8px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(30,22,14,.18);pointer-events:none}
 .social-toggle .icon-close,.social-float.open .social-toggle .icon-open{display:none}
 .social-float.open .social-toggle .icon-close{display:block}
 .social-float.open .social-link{animation:social-pop .22s ease both}
 .social-float.open .social-link:nth-child(2){animation-delay:.04s}
 .social-float.open .social-link:nth-child(3){animation-delay:.08s}
 @keyframes social-pop{from{opacity:0;transform:translateY(10px) scale(.85)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.social-float.open .social-link{animation:none}.social-link,.social-toggle{transition:none}}
-@media (max-width:640px){.social-float{right:14px;bottom:calc(14px + env(safe-area-inset-bottom));gap:10px}.social-links{gap:10px}.social-link,.social-toggle{width:48px;height:48px}.social-link svg,.social-toggle svg{width:24px;height:24px}}
+@media (prefers-reduced-motion:reduce){.social-toggle::after{animation:none;display:none}.social-float.open .social-link{animation:none}.social-link,.social-toggle{transition:none}}
+@media (max-width:640px){.social-float{right:14px;bottom:calc(14px + env(safe-area-inset-bottom));gap:10px}.social-links{gap:10px}.social-link{width:48px;height:48px}.social-toggle{width:56px;height:56px}.social-link svg{width:24px;height:24px}.social-toggle svg{width:28px;height:28px}.social-hint{display:none}}
 @media print{.social-float{display:none}}
-body:has(.social-float) #motion-toggle{margin-right:76px}
+body:has(.social-float) #motion-toggle{margin-right:190px}
 @media (max-width:640px){body:has(.social-float) #motion-toggle{margin-right:64px}}
