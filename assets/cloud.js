@@ -150,6 +150,41 @@
     // 商店頁面的開頭文字由程式繪製，重新繪製後再套用一次頁面內容。
     const storeMain = document.getElementById('store-main');
     if (storeMain) new MutationObserver(() => applyContent(content)).observe(storeMain, { childList: true });
+    // 社群連結（後台「商店與資料設定」）：右下角按鈕，點開顯示 Instagram、Facebook、LINE；都沒填時不顯示。
+    const SOCIAL_CACHE = 'encounter-social-v1', socialKeys = ['socialInstagram', 'socialFacebook', 'socialLine'];
+    const okSocial = u => typeof u === 'string' && u.length <= 300 && /^https:\/\/[^\s"'<>]+$/.test(u);
+    const socialIcons = {
+      socialInstagram: ['Instagram', '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.4" cy="6.6" r="1.3" fill="currentColor"/></svg>'],
+      socialFacebook: ['Facebook', '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.6 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.4c-.3 0-1.3-.1-2.5-.1-2.5 0-4.1 1.5-4.1 4.2v2.3H7.4V14h2.8v8z"/></svg>'],
+      socialLine: ['LINE', '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5s5.9-3.5 8-6C21.4 14.2 22 12.7 22 11c0-4.4-4.5-8-10-8z"/><text x="12" y="13.1" text-anchor="middle" font-size="5" font-weight="700" font-family="Arial,sans-serif" fill="#06c755">LINE</text></svg>']
+    };
+    let socialBox = null;
+    function renderSocial(settings) {
+      if (new URLSearchParams(location.search).get('edit') === '1') return;
+      const links = socialKeys.filter(k => okSocial(settings?.[k]));
+      if (!links.length) { socialBox?.remove(); socialBox = null; return; }
+      const en = window.CoffeeI18n?.lang === 'en', open = !!socialBox?.classList.contains('open');
+      if (!socialBox) {
+        socialBox = document.createElement('div');
+        socialBox.className = 'social-float';
+        socialBox.setAttribute('data-no-translate', '');
+        document.body.append(socialBox);
+        document.addEventListener('click', event => { if (socialBox && !socialBox.contains(event.target)) setSocial(false) });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && socialBox?.classList.contains('open')) { setSocial(false); socialBox.querySelector('.social-toggle').focus() } });
+      }
+      socialBox.innerHTML = `<div class="social-links" id="social-links">${links.map(k => `<a class="social-link social-${k}" href="${settings[k]}" target="_blank" rel="noopener noreferrer" aria-label="${socialIcons[k][0]}${en ? ' (opens in a new tab)' : '（另開新視窗）'}" title="${socialIcons[k][0]}">${socialIcons[k][1]}</a>`).join('')}</div><button type="button" class="social-toggle" aria-controls="social-links" aria-label="${en ? 'Follow us' : '追蹤我們'}" title="${en ? 'Follow us' : '追蹤我們'}"><svg class="icon-open" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C1 8.7 2.9 5 6.4 5c2.2 0 3.6 1.3 4.4 2.5h2.4C14 6.3 15.4 5 17.6 5 21.1 5 23 8.7 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg><svg class="icon-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>`;
+      socialBox.querySelector('.social-toggle').onclick = () => setSocial(!socialBox.classList.contains('open'));
+      setSocial(open);
+    }
+    function setSocial(open) {
+      if (!socialBox) return;
+      open = !!open;
+      socialBox.classList.toggle('open', open);
+      socialBox.querySelector('.social-links').hidden = !open;
+      socialBox.querySelector('.social-toggle').setAttribute('aria-expanded', String(open));
+    }
+    const pickSocial = settings => Object.fromEntries(socialKeys.filter(k => okSocial(settings?.[k])).map(k => [k, settings[k]]));
+    try { renderSocial(JSON.parse(localStorage.getItem(SOCIAL_CACHE) || 'null') || S?.state().settings) } catch (_) {}
     const ready = fetch(CLOUD_URL + '/rest/v1/site_state?id=in.(main,content)&select=id,data', { headers: { apikey: CLOUD_KEY }, cache: 'no-store' })
       .then(r => r.ok ? r.json() : Promise.reject(new Error('cloud ' + r.status)))
       .then(rows => {
@@ -159,6 +194,11 @@
           applyContent(fresh);
           try { localStorage.setItem(CONTENT_CACHE, json) } catch (_) {}
           window.dispatchEvent(new CustomEvent('coffee:content'));
+        }
+        if (main?.data?.settings) {
+          const social = pickSocial(main.data.settings);
+          renderSocial(social);
+          try { localStorage.setItem(SOCIAL_CACHE, JSON.stringify(social)) } catch (_) {}
         }
         if (main?.data && S) S.applyCloud(main.data);
         if (main?.data?.settings) applyTheme(main.data.settings.theme);

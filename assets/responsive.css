@@ -23,3 +23,26 @@ html[data-lang=en] .site-header nav{gap:18px;letter-spacing:0}
 
 @media(max-width:359px){.nav-actions #theme-toggle>span:last-child{display:none}.nav-actions #theme-toggle{min-width:44px;justify-content:center}.brand>span,html[data-lang=en] .brand>span{font-size:17px}}
 .origin-panel>div,.product-detail,.gallery{min-width:0}.origin-panel dl{grid-template-columns:90px minmax(0,1fr)}.origin-panel dd{min-width:0;overflow-wrap:anywhere}@media(max-width:767px){.origin-panel{grid-template-columns:minmax(0,1fr)}.origin-panel dl{grid-template-columns:80px minmax(0,1fr)}}
+/* 社群連結浮動按鈕（每頁右下角） */
+.social-float{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:200;display:flex;flex-direction:column;align-items:center;gap:12px}
+.social-links{display:flex;flex-direction:column;gap:12px}
+.social-links[hidden]{display:none}
+.social-link,.social-toggle{width:52px;height:52px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;color:#fff;text-decoration:none;cursor:pointer;box-shadow:0 6px 18px rgba(30,22,14,.22);transition:transform .2s,box-shadow .2s}
+.social-link:hover,.social-toggle:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(30,22,14,.28)}
+.social-link:focus-visible,.social-toggle:focus-visible{outline:3px solid rgb(var(--primary));outline-offset:3px}
+.social-link svg,.social-toggle svg{width:26px;height:26px}
+.social-socialInstagram{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 62%,#285aeb 92%)}
+.social-socialFacebook{background:#1877f2}
+.social-socialLine{background:#06c755}
+.social-toggle{background:rgb(var(--primary))}
+.social-toggle .icon-close,.social-float.open .social-toggle .icon-open{display:none}
+.social-float.open .social-toggle .icon-close{display:block}
+.social-float.open .social-link{animation:social-pop .22s ease both}
+.social-float.open .social-link:nth-child(2){animation-delay:.04s}
+.social-float.open .social-link:nth-child(3){animation-delay:.08s}
+@keyframes social-pop{from{opacity:0;transform:translateY(10px) scale(.85)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.social-float.open .social-link{animation:none}.social-link,.social-toggle{transition:none}}
+@media (max-width:640px){.social-float{right:14px;bottom:calc(14px + env(safe-area-inset-bottom));gap:10px}.social-links{gap:10px}.social-link,.social-toggle{width:48px;height:48px}.social-link svg,.social-toggle svg{width:24px;height:24px}}
+@media print{.social-float{display:none}}
+body:has(.social-float) #motion-toggle{margin-right:76px}
+@media (max-width:640px){body:has(.social-float) #motion-toggle{margin-right:64px}}
