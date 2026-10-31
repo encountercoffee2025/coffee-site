@@ -103,6 +103,8 @@ window.COFFEE_EN = {
   "取用後把袋口密封，放在陰涼乾燥、避免陽光直射與高溫的地方。依包裝上的烘焙日期與保存資訊安排品飲，也留意開封後香氣的變化。": "Reseal the bag after use and keep it somewhere cool and dry, away from heat and sunlight. Follow the roast date and storage information on the actual package.",
   "想了解商品或合作，怎麼聯絡？": "How can I ask about coffee or partnerships?",
   "可以前往": "Visit our ",
+  "歡迎來信": "Email us at ",
+  "，告訴我們你想了解的商品、品飲或合作需求。我們的品牌與挑豆理念整理在": " to ask about coffee, tastings or partnerships. Read how we select our beans in ",
   "聯絡與合作頁": "contact page",
   "，留下商品、品飲或合作需求。我們的品牌與工坊介紹也整理在": " to ask about coffee, tastings or partnerships. You can also learn more on our ",
   "關於我們": "About us",
