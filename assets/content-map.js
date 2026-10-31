@@ -71,12 +71,21 @@ window.COFFEE_CONTENT_MAP = [
     ] }
   ] },
   { id: 'story.html', name: '品牌故事', sources: ['story.html'], groups: [
-    { title: '開頭', items: [['story.kicker', '英文小標'], ['story.title', '大標題'], ['story.intro', '介紹'], ['story.img', '主圖']] },
-    { title: '內文段落', items: [['story.s1t', '段落 1 標題'], ['story.s1p', '段落 1 內文'], ['story.s2t', '段落 2 標題'], ['story.s2p', '段落 2 內文']] },
-    { title: '四道挑豆', items: [
-      ['story.step1k', '第 1 道英文小字'], ['story.step2k', '第 2 道英文小字'], ['story.step3k', '第 3 道英文小字'], ['story.step4k', '第 4 道英文小字'],
-      ['story.step1t', '第 1 道名稱'], ['story.step1p', '第 1 道說明'], ['story.step2t', '第 2 道名稱'], ['story.step2p', '第 2 道說明'],
-      ['story.step3t', '第 3 道名稱'], ['story.step3p', '第 3 道說明'], ['story.step4t', '第 4 道名稱'], ['story.step4p', '第 4 道說明']
+    { title: '開頭與章節選單', items: [['story.kicker', '英文小標'], ['story.title', '大標題'], ['story.intro', '介紹'], ['story.nav1', '章節選單 1'], ['story.nav2', '章節選單 2'], ['story.nav3', '章節選單 3']] },
+    { title: '01 品牌故事', items: [['story.img', '圖片'], ['story.s1k', '英文小標'], ['story.s1t', '標題'], ['story.s1p', '第 1 段'], ['story.s2p', '第 2 段']] },
+    { title: '02 乾淨的豆・AI 挑豆', items: [
+      ['story.cleank', '英文小標'], ['story.cleant', '標題'], ['story.cleanp', '說明'],
+      ['story.clean.img', 'AI 挑豆圖片'], ['story.aik', 'AI 挑豆英文小標'], ['story.ait', 'AI 挑豆標題'], ['story.aip', 'AI 挑豆說明'],
+      ['story.step1k', '第 1 道英文小字'], ['story.step1t', '第 1 道名稱'], ['story.step1p', '第 1 道說明'],
+      ['story.step2k', '第 2 道英文小字'], ['story.step2t', '第 2 道名稱'], ['story.step2p', '第 2 道說明'],
+      ['story.step3k', '第 3 道英文小字'], ['story.step3t', '第 3 道名稱'], ['story.step3p', '第 3 道說明'],
+      ['story.step4k', '第 4 道英文小字'], ['story.step4t', '第 4 道名稱'], ['story.step4p', '第 4 道說明']
+    ] },
+    { title: '03 烘焙專研', items: [
+      ['story.roastk', '英文小標'], ['story.roastt', '標題'], ['story.roastp', '說明'], ['story.roast.img', '烘焙圖片'],
+      ['story.roaster1t', '烘焙機 1 名稱'], ['story.roaster1s', '烘焙機 1 英文小字'], ['story.roaster1p', '烘焙機 1 說明'],
+      ['story.roaster2t', '烘焙機 2 名稱'], ['story.roaster2s', '烘焙機 2 英文小字'], ['story.roaster2p', '烘焙機 2 說明'],
+      ['story.freshk', '新鮮烘焙英文小標'], ['story.fresht', '新鮮烘焙標題'], ['story.freshp', '新鮮烘焙說明'], ['story.freshlink', '按鈕文字']
     ] }
   ] }
 ];
