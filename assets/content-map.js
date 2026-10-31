@@ -33,12 +33,6 @@ window.COFFEE_CONTENT_MAP = [
     ] },
     { title: '精選咖啡', items: [['home.collection.kicker', '英文小標'], ['home.collection.title', '標題'], ['home.collection.link', '連結文字']] },
     { title: '手作點心（精選咖啡下方）', items: [['home.treatblock.kicker', '英文小標'], ['home.treatblock.title', '標題'], ['home.treatblock.link', '連結文字']] },
-    { title: '品飲日常', items: [
-      ['home.ritual.kicker', '英文小標'], ['home.ritual.title', '標題'], ['home.ritual.copy', '說明'], ['home.ritual.img', '圖片'],
-      ['home.ritual.s1t', '步驟 1 標題'], ['home.ritual.s1p', '步驟 1 說明'],
-      ['home.ritual.s2t', '步驟 2 標題'], ['home.ritual.s2p', '步驟 2 說明'],
-      ['home.ritual.s3t', '步驟 3 標題'], ['home.ritual.s3p', '步驟 3 說明'], ['home.ritual.link', '連結文字']
-    ] },
     { title: '常見問題', items: [
       ['home.faq.kicker', '英文小標'], ['home.faq.title', '標題'], ['home.faq.link', '連結文字'],
       ['home.faq.q1', '問題 1'], ['home.faq.a1', '回答 1'], ['home.faq.q2', '問題 2'], ['home.faq.a2', '回答 2'],
@@ -51,7 +45,7 @@ window.COFFEE_CONTENT_MAP = [
     ] },
     { title: '頁尾', items: [
       ['home.closing.kicker', '頁尾上方英文小標'], ['home.closing.title', '頁尾上方大標題'], ['home.closing.button', '頁尾上方按鈕文字'], ['home.footer.tagline', '頁尾標語'],
-      ['home.footer.col1', '第 1 欄標題'], ['home.footer.all', '第 1 欄：所有咖啡'], ['home.footer.treats', '第 1 欄：手作點心'], ['home.footer.subscribe', '第 1 欄：月費訂購'], ['home.footer.flavor', '第 1 欄：依風味選豆'], ['home.footer.guide', '第 1 欄：品飲指南'],
+      ['home.footer.col1', '第 1 欄標題'], ['home.footer.all', '第 1 欄：所有咖啡'], ['home.footer.treats', '第 1 欄：手作點心'], ['home.footer.subscribe', '第 1 欄：月費訂購'], ['home.footer.flavor', '第 1 欄：依風味選豆'], ['home.footer.guide', '第 1 欄：品飲指南（連到耶加雪菲的手沖建議）'],
       ['home.footer.col2', '第 2 欄標題'], ['home.footer.story', '第 2 欄：品牌故事'], ['home.footer.process', '第 2 欄：挑豆工藝'],
       ['home.footer.col3', '第 3 欄標題'], ['home.footer.faq', '第 3 欄：常見問題'], ['home.footer.contact', '第 3 欄：聯絡與合作（點了會寄信到客服信箱）'], ['home.footer.checkout', '第 3 欄：購物車與結帳'],
       ['home.footer.top', '回到頂部連結']
