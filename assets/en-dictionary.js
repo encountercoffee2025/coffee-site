@@ -420,6 +420,7 @@ window.COFFEE_EN = {
   "購物車還沒有咖啡。": "Your coffee bag is empty.",
   "選一款喜歡的豆，加入示範購物車。": "Find a coffee you love and add it to your demo cart.",
   "探索 10 款熟豆 →": "Explore 10 roasted coffees →",
+  "探索 10 款熟豆": "Explore 10 roasted coffees",
   "把喜歡的風味，帶回日常。": "Bring your favorite flavors home.",
   "此為展示結帳。建立後只保存示範訂單，不會扣款或寄出商品。": "Demo checkout only. Your sample order is saved locally. No payment is taken and nothing is shipped.",
   "示範訂購資料": "Sample customer details",

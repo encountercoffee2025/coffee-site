@@ -17,7 +17,10 @@ window.COFFEE_CONTENT_MAP = [
     { title: '主視覺（最上方大圖區）', items: [
       ['home.hero.img1', '輪播大圖 1'], ['home.hero.img2', '輪播大圖 2'], ['home.hero.img3', '輪播大圖 3'],
       ['home.hero.eyebrow', '標題上方英文小字'], ['home.hero.title', '大標題'], ['home.hero.desc', '標題下方介紹'],
-      ['home.hero.buy', '左邊按鈕文字'], ['home.hero.story', '右邊按鈕文字'], ['home.hero.note1', '左下角標語 1'], ['home.hero.note2', '左下角標語 2']
+      ['home.hero.buy', '左邊按鈕文字'], ['home.hero.story', '右邊按鈕文字'], ['home.hero.note1', '左下角標語 1'], ['home.hero.note2', '左下角標語 2'], ['home.hero.scroll', '下方「往下捲動」英文小字']
+    ] },
+    { title: '品牌堅持（主視覺下方三欄）', items: [
+      ['home.notes.k1', '第 1 欄英文小字'], ['home.notes.t1', '第 1 欄文字'], ['home.notes.k2', '第 2 欄英文小字'], ['home.notes.t2', '第 2 欄文字'], ['home.notes.k3', '第 3 欄英文小字'], ['home.notes.t3', '第 3 欄文字']
     ] },
     { title: '品牌介紹', items: [['home.intro.kicker', '英文小標'], ['home.intro.title', '標題'], ['home.intro.copy', '內文'], ['home.intro.link', '連結文字']] },
     { title: '精選咖啡', items: [['home.collection.kicker', '英文小標'], ['home.collection.title', '標題'], ['home.collection.link', '連結文字']] },
@@ -59,14 +62,23 @@ window.COFFEE_CONTENT_MAP = [
   ] },
   { id: 'store', name: '商店頁面', sources: [], edit: [['shop.html', '咖啡選購'], ['treats.html', '點心'], ['subscribe.html', '月費訂購'], ['checkout.html', '購物車']], note: '各商店頁最上方的標題與介紹。商品本身請到「商品管理」「點心管理」修改。', groups: [
     { title: '咖啡選購', items: [['shop.kicker', '英文小標', 'ROASTED COFFEE COLLECTION'], ['shop.title', '標題', '選一款，喜歡的風味。']] },
-    { title: '點心', items: [['treats.kicker', '英文小標', 'HANDMADE TREATS'], ['treats.title', '標題', '配一口，剛剛好的甜。'], ['treats.intro', '介紹', '手作小點，與咖啡最好的相遇。\n點心為新鮮製作，下單後約 3–5 天出貨，請盡早享用。']] },
+    { title: '點心', items: [['treats.kicker', '英文小標', 'HANDMADE TREATS'], ['treats.title', '標題', '配一口，剛剛好的甜。'], ['treats.intro', '介紹', '手作小點，與咖啡最好的相遇。\n點心為新鮮製作，下單後約 3–5 天出貨，請盡早享用。'], ['treats.note', '點心列表下方說明', '點心圖片為示意插圖。點心屬易腐食品，不適用七天猶豫期；收到時若有破損請 3 日內聯繫我們。']] },
     { title: '月費訂購', items: [['subscribe.kicker', '英文小標', 'COFFEE SUBSCRIPTION'], ['subscribe.title', '標題', '讓好咖啡，按時來找你。'], ['subscribe.intro', '介紹', '每月固定寄出當季精選，可隨時取消。所有方案皆免運。']] },
-    { title: '購物車', items: [['checkout.kicker', '英文小標', 'YOUR COFFEE BAG'], ['checkout.title', '標題', '把喜歡的風味，帶回日常。'], ['checkout.intro', '介紹', '確認品項與配送方式，填好收件資料後前往綠界付款。']] }
+    { title: '月費訂購・常見問題', items: [
+      ['subscribe.faq.title', '標題', '常見問題'],
+      ['subscribe.faq.q1', '問題 1', '可以隨時取消嗎？'], ['subscribe.faq.a1', '回答 1', '可以。來信或 LINE 告訴我們，在下次扣款日前取消，之後就不會再扣款；已扣款的當期會照常出貨。'],
+      ['subscribe.faq.q2', '問題 2', '什麼時候扣款與出貨？'], ['subscribe.faq.a2', '回答 2', '首次於訂閱當下扣款，之後每期同一日自動以信用卡扣款，扣款後 3–7 天內出貨。'],
+      ['subscribe.faq.q3', '問題 3', '月費方案要付運費嗎？'], ['subscribe.faq.a3', '回答 3', '不用，所有月費方案皆免運費。'],
+      ['subscribe.faq.q4', '問題 4', '可以換口味嗎？'], ['subscribe.faq.a4', '回答 4', '每期由烘豆師依季節挑選，你也可以隨時聯繫我們調整烘焙度偏好。']
+    ] },
+    { title: '購物車', items: [['checkout.kicker', '英文小標', 'YOUR COFFEE BAG'], ['checkout.title', '標題', '把喜歡的風味，帶回日常。'], ['checkout.intro', '介紹', '確認品項與配送方式，填好收件資料後前往綠界付款。']] },
+    { title: '購物車（空的時候）', items: [['checkout.empty.kicker', '英文小標', 'YOUR COFFEE BAG'], ['checkout.empty.title', '標題', '購物車還沒有咖啡。'], ['checkout.empty.copy', '說明', '選一款喜歡的豆，加入購物車。'], ['checkout.empty.shop', '按鈕文字', '探索 10 款熟豆'], ['checkout.empty.treats', '連結文字', '看看點心']] }
   ] },
   { id: 'story.html', name: '品牌故事', sources: ['story.html'], groups: [
     { title: '開頭', items: [['story.kicker', '英文小標'], ['story.title', '大標題'], ['story.intro', '介紹'], ['story.img', '主圖']] },
     { title: '內文段落', items: [['story.s1t', '段落 1 標題'], ['story.s1p', '段落 1 內文'], ['story.s2t', '段落 2 標題'], ['story.s2p', '段落 2 內文']] },
     { title: '四道挑豆', items: [
+      ['story.step1k', '第 1 道英文小字'], ['story.step2k', '第 2 道英文小字'], ['story.step3k', '第 3 道英文小字'], ['story.step4k', '第 4 道英文小字'],
       ['story.step1t', '第 1 道名稱'], ['story.step1p', '第 1 道說明'], ['story.step2t', '第 2 道名稱'], ['story.step2p', '第 2 道說明'],
       ['story.step3t', '第 3 道名稱'], ['story.step3p', '第 3 道說明'], ['story.step4t', '第 4 道名稱'], ['story.step4p', '第 4 道說明']
     ] }
