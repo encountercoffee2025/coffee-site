@@ -39,9 +39,6 @@ window.COFFEE_CONTENT_MAP = [
       ['home.faq.q3', '問題 3'], ['home.faq.a3', '回答 3'], ['home.faq.q4', '問題 4'], ['home.faq.a4', '回答 4'],
       ['home.faq.q5', '問題 5（回答含連結，固定不變）']
     ] },
-    { title: '月費訂購卡片', items: [
-      ['home.offer.sub.kicker', '月費卡片英文小標'], ['home.offer.sub.title', '月費卡片標題'], ['home.offer.sub.copy', '月費卡片說明'], ['home.offer.sub.link', '月費卡片連結文字']
-    ] },
     { title: '頁尾', items: [
       ['home.closing.kicker', '頁尾上方英文小標'], ['home.closing.title', '頁尾上方大標題'], ['home.closing.button', '頁尾上方按鈕文字'], ['home.footer.tagline', '頁尾標語'],
       ['home.footer.col1', '第 1 欄標題'], ['home.footer.all', '第 1 欄：所有咖啡'], ['home.footer.treats', '第 1 欄：手作點心'], ['home.footer.subscribe', '第 1 欄：月費訂購'], ['home.footer.flavor', '第 1 欄：依風味選豆'], ['home.footer.guide', '第 1 欄：品飲指南（連到耶加雪菲的手沖建議）'],
