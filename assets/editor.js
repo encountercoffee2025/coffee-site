@@ -87,7 +87,9 @@ body.ce-editing{padding-bottom:150px}
     window.addEventListener('pagehide', () => { try { if (motionWas === null) localStorage.removeItem('pure-select-motion'); else localStorage.setItem('pure-select-motion', motionWas) } catch (_) {} });
     document.querySelectorAll('details').forEach(d => d.open = true);
     document.addEventListener('click', event => { if (!event.target.closest('.ce-ui') && event.target.closest('a[href], summary')) event.preventDefault() }, true);
-    document.addEventListener('submit', event => { if (!event.target.closest('.ce-ui')) event.preventDefault() }, true);
+    // 表單欄位名稱（姓名、電子信箱…）在 label 裡：點文字時留在文字上，不要跳到輸入框。
+    document.addEventListener('click', event => { if (event.target.closest('.ce-text') && event.target.closest('label')) event.preventDefault() }, true);
+    document.addEventListener('submit',event => { if (!event.target.closest('.ce-ui')) event.preventDefault() }, true);
 
     // 文字：把元素開頭的文字包成可編輯區塊；後面的箭頭等子元素保留。
     const plain = (() => { const d = document.createElement('div'); d.contentEditable = 'plaintext-only'; return d.contentEditable === 'plaintext-only' })();

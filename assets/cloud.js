@@ -352,7 +352,7 @@
   async function renderContent(main) {
     const map = window.COFFEE_CONTENT_MAP || [], tabs = [...map.map(p => [p.id, p.name]), ['plans', '月費方案']];
     const tabBar = `<div class="content-tabs" role="tablist">${tabs.map(([id, name]) => `<button type="button" class="${id === contentTab ? 'primary-button' : 'secondary-button'}" data-content-tab="${esc(id)}" aria-pressed="${id === contentTab}">${esc(name)}</button>`).join('')}</div>`;
-    const head = `<div class="admin-heading"><div><p class="section-kicker">ENCOUNTER OPERATIONS</p><h1>頁面內容</h1><p>修改頁首頁尾、首頁、商店頁面、品牌故事、關於我們與月費方案的文字和圖片。按「儲存」後客人重新整理頁面就會看到。</p></div></div>`;
+    const head = `<div class="admin-heading"><div><p class="section-kicker">ENCOUNTER OPERATIONS</p><h1>頁面內容</h1><p>修改頁首頁尾、首頁、商店頁面、購物車、品牌故事、關於我們與月費方案的文字和圖片。按「儲存」後客人重新整理頁面就會看到。</p></div></div>`;
     main.innerHTML = head + tabBar + '<div class="admin-panel" data-no-translate><p>載入中…</p></div>';
     main.querySelectorAll('[data-content-tab]').forEach(b => b.onclick = () => { contentTab = b.dataset.contentTab; renderContent(main) });
     const panel = main.querySelector('.admin-panel');

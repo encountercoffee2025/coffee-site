@@ -60,7 +60,7 @@ window.COFFEE_CONTENT_MAP = [
       ['home.footer.top', '回到頂部連結']
     ] }
   ] },
-  { id: 'store', name: '商店頁面', sources: [], edit: [['shop.html', '咖啡選購'], ['treats.html', '點心'], ['subscribe.html', '月費訂購'], ['checkout.html', '購物車']], note: '各商店頁最上方的標題與介紹。商品本身請到「商品管理」「點心管理」修改。', groups: [
+  { id: 'store', name: '商店頁面', sources: [], edit: [['shop.html', '咖啡選購'], ['treats.html', '點心'], ['subscribe.html', '月費訂購']], note: '各商店頁最上方的標題與介紹。商品本身請到「商品管理」「點心管理」修改。', groups: [
     { title: '咖啡選購', items: [['shop.kicker', '英文小標', 'ROASTED COFFEE COLLECTION'], ['shop.title', '標題', '選一款，喜歡的風味。']] },
     { title: '點心', items: [['treats.kicker', '英文小標', 'HANDMADE TREATS'], ['treats.title', '標題', '配一口，剛剛好的甜。'], ['treats.intro', '介紹', '手作小點，與咖啡最好的相遇。\n點心為新鮮製作，下單後約 3–5 天出貨，請盡早享用。'], ['treats.note', '點心列表下方說明', '點心圖片為示意插圖。點心屬易腐食品，不適用七天猶豫期；收到時若有破損請 3 日內聯繫我們。']] },
     { title: '月費訂購', items: [['subscribe.kicker', '英文小標', 'COFFEE SUBSCRIPTION'], ['subscribe.title', '標題', '讓好咖啡，按時來找你。'], ['subscribe.intro', '介紹', '每月固定寄出當季精選，可隨時取消。所有方案皆免運。']] },
@@ -71,8 +71,21 @@ window.COFFEE_CONTENT_MAP = [
       ['subscribe.faq.q3', '問題 3', '月費方案要付運費嗎？'], ['subscribe.faq.a3', '回答 3', '不用，所有月費方案皆免運費。'],
       ['subscribe.faq.q4', '問題 4', '可以換口味嗎？'], ['subscribe.faq.a4', '回答 4', '每期由烘豆師依季節挑選，你也可以隨時聯繫我們調整烘焙度偏好。']
     ] },
-    { title: '購物車', items: [['checkout.kicker', '英文小標', 'YOUR COFFEE BAG'], ['checkout.title', '標題', '把喜歡的風味，帶回日常。'], ['checkout.intro', '介紹', '確認品項與配送方式，填好收件資料後前往綠界付款。']] },
-    { title: '購物車（空的時候）', items: [['checkout.empty.kicker', '英文小標', 'YOUR COFFEE BAG'], ['checkout.empty.title', '標題', '購物車還沒有咖啡。'], ['checkout.empty.copy', '說明', '選一款喜歡的豆，加入購物車。'], ['checkout.empty.shop', '按鈕文字', '探索 10 款熟豆'], ['checkout.empty.treats', '連結文字', '看看點心']] }
+  ] },
+  { id: 'checkout', name: '購物車', sources: [], edit: [['checkout.html', '購物車']], note: '購物車是空的時候，編輯頁面會同時顯示「空購物車」和結帳表單，兩邊都能直接修改。運費、免運門檻請到「商店與資料設定」修改。', groups: [
+    { title: '開頭', items: [['checkout.kicker', '英文小標', 'YOUR COFFEE BAG'], ['checkout.title', '標題', '把喜歡的風味，帶回日常。'], ['checkout.intro', '介紹', '確認品項與配送方式，填好收件資料後前往綠界付款。']] },
+    { title: '購物車是空的時候', items: [['checkout.empty.kicker', '英文小標', 'YOUR COFFEE BAG'], ['checkout.empty.title', '標題', '購物車還沒有咖啡。'], ['checkout.empty.copy', '說明', '選一款喜歡的豆，加入購物車。'], ['checkout.empty.shop', '按鈕文字', '探索 10 款熟豆'], ['checkout.empty.treats', '連結文字', '看看點心']] },
+    { title: '商品列表', items: [['checkout.treatNote', '有點心時的出貨說明', '點心為新鮮製作，下單後約 3–5 天出貨，請盡早享用。']] },
+    { title: '訂購資料表單', items: [
+      ['checkout.form.title', '表單標題', '訂購資料'], ['checkout.form.name', '欄位：姓名', '姓名'], ['checkout.form.email', '欄位：電子信箱', '電子信箱'], ['checkout.form.phone', '欄位：手機', '手機'],
+      ['checkout.form.delivery', '配送方式標題', '配送方式'], ['checkout.form.pay', '付款方式標題', '付款方式'],
+      ['checkout.pay.credit', '付款按鈕：信用卡', '信用卡'], ['checkout.pay.atm', '付款按鈕：ATM', 'ATM 轉帳'], ['checkout.pay.cvs', '付款按鈕：超商代碼', '超商代碼繳費'],
+      ['checkout.form.storeHint', '選擇門市按鈕旁說明', '開啟超商官方門市地圖，選好後會自動帶回。'], ['checkout.form.note', '欄位：備註', '備註（選填）'],
+      ['checkout.form.submit', '付款按鈕文字', '前往付款'], ['checkout.form.secure', '付款按鈕下方說明', '付款由綠界科技 ECPay 處理，本站不會經手你的卡號。']
+    ] },
+    { title: '訂單明細（右側）', items: [
+      ['checkout.sum.title', '標題', '訂單明細'], ['checkout.sum.count', '商品包數', '商品包數'], ['checkout.sum.grams', '咖啡總淨重', '咖啡總淨重'], ['checkout.sum.subtotal', '商品小計', '商品小計'], ['checkout.sum.total', '應付總額', '應付總額']
+    ] }
   ] },
   { id: 'story.html', name: '品牌故事', sources: ['story.html'], groups: [
     { title: '開頭', items: [['story.kicker', '英文小標'], ['story.title', '大標題'], ['story.intro', '介紹'], ['story.img', '主圖']] },
