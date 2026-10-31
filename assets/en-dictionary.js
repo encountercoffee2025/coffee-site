@@ -971,6 +971,8 @@ window.COFFEE_EN = {
   "數量": "Quantity",
   "/ 份": "/ pc",
   "看看點心": "See treats",
+  "三豆客 X3 直火烘焙機": "Santoker X3 direct-heat roaster",
+  "三豆客 RX700 熱風烘焙機": "Santoker RX700 hot-air roaster",
   "圓展 AVerCasso AI 挑豆機運作影片": "Video of the AVer AVerCasso AI coffee sorter at work",
   "品牌故事章節": "Story chapters",
   "乾淨的豆・AI 挑豆": "Clean beans & AI sorting",
