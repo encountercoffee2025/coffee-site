@@ -83,3 +83,29 @@ html[data-lang="en"][data-hero] .coffee-hero h1{line-height:1.12}
   html[data-hero="e"] .hero-actions{justify-content:flex-start}
   html[data-hero="e"] .carousel-controls{right:20px}
 }
+
+/* F 極簡全幅：白色細頁首、照片不壓暗、左下一行小標題、右下底線連結、底部短線指示 */
+html[data-hero="f"] .site-header:not(.is-menu-open){background:rgb(var(--card));color:rgb(var(--ink));border-bottom:1px solid rgb(var(--line))}
+html[data-hero="f"] .nav-shell{min-height:62px}
+html[data-hero="f"] .hero-overlay{background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.32))}
+html[data-hero="f"] .hero-content{position:absolute;inset:auto 32px 76px;height:auto;padding:0;flex-direction:row;justify-content:space-between;align-items:flex-end;gap:24px;text-align:left}
+html[data-hero="f"] .hero-eyebrow,html[data-hero="f"] .hero-rule,html[data-hero="f"] .hero-description,html[data-hero="f"] .hero-story,html[data-hero="f"] .hero-roast-note,html[data-hero="f"] .scroll-cue{display:none}
+html[data-hero="f"] .coffee-hero h1{font-size:clamp(22px,1.9vw,30px);line-height:1.4;letter-spacing:.04em;padding-left:0;text-shadow:0 1px 12px rgb(0 0 0 / .3)}
+html[data-hero="f"] .coffee-hero h1 br{display:none}
+html[data-hero="f"] .hero-actions{justify-content:flex-end}
+html[data-hero="f"] .hero-buy{min-height:0;padding:0;gap:0;border:0;background:none;color:#fffaf2;font-size:14px;letter-spacing:.02em;text-decoration:underline;text-underline-offset:5px;text-shadow:0 1px 8px rgb(0 0 0 / .35)}
+html[data-hero="f"] .hero-buy:hover{background:none;opacity:.8}
+html[data-hero="f"] .hero-buy>span[aria-hidden]{display:none}
+html[data-hero="f"] .carousel-controls{bottom:22px;gap:10px}
+html[data-hero="f"] #slide-prev,html[data-hero="f"] #slide-next,html[data-hero="f"] #slide-count{display:none}
+html[data-hero="f"] .carousel-controls button[data-slide]{width:34px;min-width:34px;height:24px;min-height:24px}
+html[data-hero="f"] .carousel-controls button[data-slide]::before{width:32px;height:3px;border:0;border-radius:0;background:rgba(255,250,242,.45)}
+html[data-hero="f"] .carousel-controls button[aria-pressed=true]::before{background:#fffaf2}
+html[data-hero="f"] .hero-bottom{bottom:14px;display:flex;justify-content:flex-end}
+@media(max-width:767px){
+  html[data-hero="f"] .hero-content{inset:auto 20px 74px;flex-direction:column;align-items:flex-start;gap:10px}
+  html[data-hero="f"] .coffee-hero h1{font-size:21px}
+  html[data-hero="f"] .hero-actions{width:auto;max-width:none;flex-direction:row}
+  html[data-hero="f"] .hero-buy{font-size:13px;width:auto}
+  html[data-hero="f"] .carousel-controls{left:20px;transform:none;bottom:24px}
+}
