@@ -39,3 +39,11 @@ html.cloud-loading [data-content],html.cloud-loading [data-content-img]{visibili
 .footer-bottom{border-top-color:rgb(var(--on-primary) / .22);padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 .footer-bottom a{color:inherit}
 .footer-bottom a:hover{color:rgb(var(--on-primary))}
+/* 首頁頁尾：較矮的版本 */
+.site-footer{padding-top:40px}
+.footer-top{padding-bottom:30px}
+.footer-top h2{margin-bottom:12px}
+.footer-top>div:not(:first-child)>a{padding:3px 0}
+.footer-top>div>p{margin-top:14px;line-height:1.9}
+.footer-bottom{padding-top:14px;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+@media(max-width:767px){.site-footer{padding-top:32px}.footer-top{gap:24px 28px;padding-bottom:24px}}
