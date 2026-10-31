@@ -32,3 +32,11 @@ html:not([data-lang=en]) .coffee-hero h1{padding-left:.08em}
 /* Cloud page content: hide editable spots briefly on a first visit until cloud content arrives */
 html.cloud-loading [data-content],html.cloud-loading [data-content-img]{visibility:hidden}
 .theme-control[hidden]{display:none!important}
+.closing-section{padding-bottom:0}
+.closing-section .closing-content{padding-bottom:65px}
+.closing-footer{background:rgb(var(--primary));color:rgb(var(--on-primary))}
+.closing-footer-inner{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-block:22px calc(22px + env(safe-area-inset-bottom));border-top:1px solid rgb(var(--on-primary) / .22);font-size:12px}
+.closing-footer-inner p{margin:0;opacity:.85}
+.closing-footer-inner a{opacity:.85}
+.closing-footer-inner a:hover{opacity:1}
+@media(max-width:767px){.closing-section .closing-content{padding-bottom:43px}}

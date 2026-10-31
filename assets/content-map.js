@@ -40,11 +40,8 @@ window.COFFEE_CONTENT_MAP = [
       ['home.faq.q5', '問題 5（回答含連結，固定不變）']
     ] },
     { title: '頁尾', items: [
-      ['home.closing.kicker', '頁尾上方英文小標'], ['home.closing.title', '頁尾上方大標題'], ['home.closing.button', '頁尾上方按鈕文字'], ['home.footer.tagline', '頁尾標語'],
-      ['home.footer.col1', '第 1 欄標題'], ['home.footer.all', '第 1 欄：所有咖啡'], ['home.footer.treats', '第 1 欄：手作點心'], ['home.footer.subscribe', '第 1 欄：月費訂購'], ['home.footer.flavor', '第 1 欄：依風味選豆'], ['home.footer.guide', '第 1 欄：品飲指南（連到耶加雪菲的手沖建議）'],
-      ['home.footer.col2', '第 2 欄標題'], ['home.footer.story', '第 2 欄：品牌故事'], ['home.footer.process', '第 2 欄：挑豆工藝'],
-      ['home.footer.col3', '第 3 欄標題'], ['home.footer.faq', '第 3 欄：常見問題'], ['home.footer.contact', '第 3 欄：聯絡與合作（點了會寄信到客服信箱）'], ['home.footer.checkout', '第 3 欄：購物車與結帳'],
-      ['home.footer.top', '回到頂部連結']
+      ['home.closing.kicker', '深色區英文小標'], ['home.closing.title', '深色區大標題'], ['home.closing.button', '深色區按鈕文字'],
+      ['home.footer.top', '最下方「回到頂部」連結']
     ] }
   ] },
   { id: 'store', name: '商店頁面', sources: [], edit: [['shop.html', '咖啡選購'], ['treats.html', '點心'], ['subscribe.html', '月費訂購']], note: '各商店頁最上方的標題與介紹。商品本身請到「商品管理」「點心管理」修改。', groups: [
