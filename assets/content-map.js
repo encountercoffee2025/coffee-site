@@ -23,8 +23,6 @@ window.COFFEE_CONTENT_MAP = [
       ['home.notes.k1', '第 1 欄英文小字'], ['home.notes.t1', '第 1 欄文字'], ['home.notes.k2', '第 2 欄英文小字'], ['home.notes.t2', '第 2 欄文字'], ['home.notes.k3', '第 3 欄英文小字'], ['home.notes.t3', '第 3 欄文字']
     ] },
     { title: '品牌介紹', items: [['home.intro.kicker', '英文小標'], ['home.intro.title', '標題'], ['home.intro.copy', '內文'], ['home.intro.link', '連結文字']] },
-    { title: '精選咖啡', items: [['home.collection.kicker', '英文小標'], ['home.collection.title', '標題'], ['home.collection.link', '連結文字']] },
-    { title: '手作點心（精選咖啡下方）', items: [['home.treatblock.kicker', '英文小標'], ['home.treatblock.title', '標題'], ['home.treatblock.link', '連結文字']] },
     { title: '挑豆工藝', items: [
       ['home.process.kicker', '英文小標'], ['home.process.title', '標題'], ['home.process.desc', '說明'], ['home.process.label', '圖片下方英文小字'],
       ['home.process.img1', '第 1 道圖片'], ['home.process.s1t', '第 1 道名稱'], ['home.process.s1p', '第 1 道說明'],
@@ -33,6 +31,8 @@ window.COFFEE_CONTENT_MAP = [
       ['home.process.img4', '第 4 道圖片', 'assets/5f4e97466f3f.jpg', '剛烘焙完成、正在冷卻的咖啡豆'], ['home.process.s4t', '第 4 道名稱'], ['home.process.s4p', '第 4 道說明'],
       ['home.process.link', '連結文字']
     ] },
+    { title: '精選咖啡', items: [['home.collection.kicker', '英文小標'], ['home.collection.title', '標題'], ['home.collection.link', '連結文字']] },
+    { title: '手作點心（精選咖啡下方）', items: [['home.treatblock.kicker', '英文小標'], ['home.treatblock.title', '標題'], ['home.treatblock.link', '連結文字']] },
     { title: '品飲日常', items: [
       ['home.ritual.kicker', '英文小標'], ['home.ritual.title', '標題'], ['home.ritual.copy', '說明'], ['home.ritual.img', '圖片'],
       ['home.ritual.s1t', '步驟 1 標題'], ['home.ritual.s1p', '步驟 1 說明'],
