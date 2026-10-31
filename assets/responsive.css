@@ -107,3 +107,10 @@ body:has(.social-float) .footer-bottom{padding-right:90px}
   .roaster-mark{top:22px;right:20px;width:44px;height:44px;font-size:19px}
   .roast-fresh{padding:30px 24px}
 }
+.story-video{position:relative;margin:0}
+.story-video video{display:block;aspect-ratio:16/9;background:#1c1009}
+.story-video-toggle{position:absolute;right:14px;bottom:14px;width:42px;height:42px;padding:0;border:0;border-radius:50%;background:rgba(20,14,9,.62);display:grid;place-items:center;cursor:pointer}
+.story-video-toggle:hover{background:rgba(20,14,9,.82)}
+.story-video-toggle:focus-visible{outline:3px solid #fffaf2;outline-offset:2px}
+.story-video-toggle>span{width:0;height:0;border-style:solid;border-width:8px 0 8px 13px;border-color:transparent transparent transparent #fffaf2;margin-left:3px}
+.story-video.is-playing .story-video-toggle>span{width:12px;height:14px;border:0;margin:0;border-left:4px solid #fffaf2;border-right:4px solid #fffaf2}
