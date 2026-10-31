@@ -86,3 +86,4 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .free-ship-bar span{display:block;height:100%;background:linear-gradient(90deg,#f0b45e,#ffd59a);border-radius:4px;transition:width .3s}
 .free-ship.is-free{background:#2f5a35;border-left-color:#9fd49a;color:#f2fbef;box-shadow:0 6px 18px rgba(47,90,53,.22)}
 .free-ship.is-free p{margin:0}
+.variant-options .sold-out{font-weight:600;color:#a3402d}
