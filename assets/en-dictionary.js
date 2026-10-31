@@ -149,6 +149,7 @@ window.COFFEE_EN = {
   "營運報表": "Reports",
   "商店與資料設定": "Store & data settings",
   "← 回到前台選購": "← Back to the shop",
+  "← 回到前台首頁": "← Back to the homepage",
   "查看首頁 ↗": "View home ↗",
   "商品、點心、庫存、烘焙批次與商店設定會自動存到雲端，客人立即看到。訂單與訂閱目前仍只保存在這台電腦（下一階段接上金流後改為雲端）。": "Products, treats, stock, roast batches and shop settings save to the cloud automatically and customers see them right away. Orders and subscriptions still stay on this computer until payments are connected.",
   "頁面內容": "Page content",
