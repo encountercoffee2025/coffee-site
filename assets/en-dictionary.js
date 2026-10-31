@@ -382,6 +382,8 @@ window.COFFEE_EN = {
   "沒有符合條件的咖啡。請清除搜尋或調整篩選。": "No coffees match. Clear your search or change the filters.",
   "查看規格 ↗": "View coffee ↗",
   "查看咖啡 ↗": "View coffee ↗",
+  "查看點心 ↗": "View treats ↗",
+  "一口甜點，讓咖啡更完整。": "A small sweet bite makes the cup complete.",
   "找不到這款咖啡": "Coffee not found",
   "回到商品選購": "Back to the shop",
   "熟豆選購": "Roasted coffees",

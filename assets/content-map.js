@@ -24,10 +24,7 @@ window.COFFEE_CONTENT_MAP = [
     ] },
     { title: '品牌介紹', items: [['home.intro.kicker', '英文小標'], ['home.intro.title', '標題'], ['home.intro.copy', '內文'], ['home.intro.link', '連結文字']] },
     { title: '精選咖啡', items: [['home.collection.kicker', '英文小標'], ['home.collection.title', '標題'], ['home.collection.link', '連結文字']] },
-    { title: '點心介紹（精選咖啡下方）', items: [
-      ['home.treatblock.img', '圖片'], ['home.treatblock.kicker', '英文小標'], ['home.treatblock.title', '標題'], ['home.treatblock.copy', '內文'], ['home.treatblock.link', '連結文字'],
-      ['home.treatblock.tag1', '小標籤 1'], ['home.treatblock.tag2', '小標籤 2'], ['home.treatblock.tag3', '小標籤 3']
-    ] },
+    { title: '手作點心（精選咖啡下方）', items: [['home.treatblock.kicker', '英文小標'], ['home.treatblock.title', '標題'], ['home.treatblock.link', '連結文字']] },
     { title: '挑豆工藝', items: [
       ['home.process.kicker', '英文小標'], ['home.process.title', '標題'], ['home.process.desc', '說明'], ['home.process.label', '圖片下方英文小字'],
       ['home.process.img1', '第 1 道圖片'], ['home.process.s1t', '第 1 道名稱'], ['home.process.s1p', '第 1 道說明'],
