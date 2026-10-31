@@ -115,7 +115,9 @@ body.ce-editing{padding-bottom:150px}
       return t;
     });
     const styleChanged = t => JSON.stringify(t.style) !== t.savedStyle;
-    const read = span => span.innerText.replace(/ /g, ' ').replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    // 直接讀取文字與換行（不用 innerText）：手機版會隱藏部分換行，用 innerText 會被誤判成修改。
+    const flat = n => [...n.childNodes].map(c => c.nodeType === 3 ? c.nodeValue : c.nodeName === 'BR' ? '\n' : (/^(DIV|P)$/.test(c.nodeName) ? '\n' : '') + flat(c)).join('');
+    const read = span => flat(span).replace(/ /g, ' ').replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 
     // 圖片：在每張可編輯圖片左上角放「更換圖片」按鈕。挑豆工藝的圖片會跟著目前選取的步驟切換。
     const layer = document.createElement('div');
