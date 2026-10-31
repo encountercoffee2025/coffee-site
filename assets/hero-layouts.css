@@ -1,4 +1,4 @@
-/* 首頁主視覺版型：<html data-hero="b|c|d|e">；沒有設定時是原本的置中版（A）。 */
+/* 首頁主視覺版型：<html data-hero="b|c|d|e|f">。目前正式使用 F（index.html 預設）；網址加 ?hero=a 可看原本的置中版。 */
 
 /* B 左側雜誌：文字靠左，左側漸層壓暗，右側照片保留亮度 */
 html[data-hero="b"] .hero-overlay{background:linear-gradient(90deg,rgba(12,8,4,.84) 0%,rgba(12,8,4,.58) 36%,rgba(12,8,4,.12) 68%,rgba(12,8,4,.3))}
@@ -109,3 +109,5 @@ html[data-hero="f"] .hero-bottom{bottom:14px;display:flex;justify-content:flex-e
   html[data-hero="f"] .hero-buy{font-size:13px;width:auto}
   html[data-hero="f"] .carousel-controls{left:20px;transform:none;bottom:24px}
 }
+html[data-hero="f"] body:has(.social-float) .hero-content{right:112px}
+@media(max-width:767px){html[data-hero="f"] body:has(.social-float) .hero-content{right:84px}}
