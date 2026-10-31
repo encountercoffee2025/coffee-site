@@ -39,7 +39,9 @@ html[data-lang=en] .site-header nav{gap:18px;letter-spacing:0}
 .social-toggle::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:3px solid #e8a057;animation:social-pulse 2.4s ease-out infinite;pointer-events:none}
 @keyframes social-pulse{0%{transform:scale(1);opacity:.75}100%{transform:scale(1.6);opacity:0}}
 .social-float.open .social-toggle::after,.social-float.open .social-hint{display:none}
-.social-hint{position:absolute;right:72px;bottom:14px;white-space:nowrap;background:#fff;color:#7a4517;font-size:14px;font-weight:600;letter-spacing:.04em;padding:8px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(30,22,14,.18);pointer-events:none}
+.social-hint{position:absolute;right:72px;bottom:14px;white-space:nowrap;background:#fff;color:#7a4517;font-size:14px;font-weight:600;letter-spacing:.04em;padding:8px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(30,22,14,.18);pointer-events:none;animation:social-hint-out .5s ease 6s forwards}
+@keyframes social-hint-out{to{opacity:0;visibility:hidden}}
+.social-float:hover .social-hint{animation:none;opacity:1;visibility:visible}
 .social-toggle .icon-close,.social-float.open .social-toggle .icon-open{display:none}
 .social-float.open .social-toggle .icon-close{display:block}
 .social-float.open .social-link{animation:social-pop .22s ease both}

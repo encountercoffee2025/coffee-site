@@ -39,8 +39,7 @@ window.COFFEE_CONTENT_MAP = [
       ['home.faq.q3', '問題 3'], ['home.faq.a3', '回答 3'], ['home.faq.q4', '問題 4'], ['home.faq.a4', '回答 4'],
       ['home.faq.q5', '問題 5（回答含連結，固定不變）']
     ] },
-    { title: '點心與月費卡片', items: [
-      ['home.offer.treat.img', '點心卡片圖片'], ['home.offer.treat.kicker', '點心卡片英文小標'], ['home.offer.treat.title', '點心卡片標題'], ['home.offer.treat.copy', '點心卡片說明'], ['home.offer.treat.link', '點心卡片連結文字'],
+    { title: '月費訂購卡片', items: [
       ['home.offer.sub.kicker', '月費卡片英文小標'], ['home.offer.sub.title', '月費卡片標題'], ['home.offer.sub.copy', '月費卡片說明'], ['home.offer.sub.link', '月費卡片連結文字']
     ] },
     { title: '頁尾', items: [

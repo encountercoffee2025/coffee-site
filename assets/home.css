@@ -32,3 +32,4 @@ html:not([data-lang=en]) .coffee-hero h1{padding-left:.08em}
 /* Cloud page content: hide editable spots briefly on a first visit until cloud content arrives */
 html.cloud-loading [data-content],html.cloud-loading [data-content-img]{visibility:hidden}
 .theme-control[hidden]{display:none!important}
+.home-offers-single{grid-template-columns:1fr}
