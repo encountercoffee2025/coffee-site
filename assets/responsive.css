@@ -137,3 +137,7 @@ html[data-stage="e"] .roaster-stage{background:rgb(var(--primary))}
 html[data-stage="e"] .roaster-stage-bg{display:none}
 html[data-stage="e"] .roaster-stage::before{content:"ROAST TO ORDER";display:flex;align-items:center;justify-content:center;font:600 clamp(48px,9vw,140px)/1 Inter,sans-serif;letter-spacing:.06em;color:rgba(255,250,242,.08);white-space:nowrap;background:radial-gradient(ellipse 60% 50% at 50% 100%,rgba(0,0,0,.28),transparent 70%)}
 html[data-stage="e"] .roaster-stage-item img{filter:drop-shadow(0 24px 20px rgba(0,0,0,.45))}
+html[data-stage="f"] .roaster-stage{background:none;padding-top:20px;padding-bottom:10px;min-height:0}
+html[data-stage="f"] .roaster-stage-bg,html[data-stage="f"] .roaster-stage::before{display:none}
+html[data-stage="f"] .roaster-stage-item img{filter:drop-shadow(0 18px 16px rgba(60,40,25,.22))}
+html[data-stage="f"] .roaster-stage-item figcaption{color:rgb(var(--ink));border-color:rgb(var(--ink) / .25);background:transparent}
