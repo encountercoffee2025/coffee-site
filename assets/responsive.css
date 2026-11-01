@@ -122,3 +122,41 @@ body:has(.social-float) .footer-bottom{padding-right:90px}
 .roaster-stage-rx700 img{height:min(350px,35vw)}
 .roaster-stage-item figcaption{color:rgb(var(--ink));font-size:13px;letter-spacing:.08em;padding:6px 14px;border:1px solid rgb(var(--ink) / .25);border-radius:999px}
 @media(max-width:767px){.roaster-stage{padding:10px 4px 6px;gap:14px;margin-bottom:24px}.roaster-stage-x3 img{height:auto;width:86%}.roaster-stage-rx700 img{height:auto;width:100%}.roaster-stage-item figcaption{font-size:10px;padding:5px 9px;letter-spacing:0;white-space:nowrap}}
+
+/* 品牌故事 02：直式挑豆影片＋右側文字與四道挑豆時間軸（2026-11-01） */
+.clean-layout{display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(36px,6vw,80px);align-items:start}
+/* 寬度由頁面程式計算，讓影片高度＝右側整欄文字高度；程式執行前先用 380px */
+.clean-video{width:380px;min-width:240px}
+.clean-video video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:18px;background:#1c1009;box-shadow:0 24px 50px -24px rgba(40,26,14,.45)}
+.clean-video .story-video-toggle{right:14px;bottom:14px}
+.story-video-sound{position:absolute;right:64px;bottom:14px;width:42px;height:42px;padding:0;border:0;border-radius:50%;background:rgba(20,14,9,.62);display:grid;place-items:center;cursor:pointer;color:#fffaf2}
+.story-video-sound:hover{background:rgba(20,14,9,.82)}
+.story-video-sound:focus-visible{outline:3px solid #fffaf2;outline-offset:2px}
+.story-video-sound svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.story-video-sound svg path:first-child{fill:currentColor;stroke:none}
+.story-video-sound .snd-on,.story-video-sound[aria-pressed="true"] .snd-off{display:none}
+.story-video-sound[aria-pressed="true"] .snd-on{display:block}
+.clean-text .story-chapter-head{margin-bottom:30px}
+.clean-ai{padding:26px 28px;border-left:3px solid rgb(var(--accent))}
+.clean-ai h3{font-size:clamp(20px,2.2vw,26px);margin:10px 0 12px}
+.clean-ai p:not(.section-kicker){color:rgb(var(--muted))}
+.clean-steps{list-style:none;margin:40px 0 0;padding:0}
+.clean-steps li{position:relative;padding:0 0 28px 38px}
+.clean-steps li::before{content:"";position:absolute;left:5px;top:5px;width:12px;height:12px;border-radius:50%;background:rgb(var(--paper));border:2px solid rgb(var(--primary))}
+.clean-steps li::after{content:"";position:absolute;left:11px;top:22px;bottom:2px;width:1px;background:rgb(var(--line))}
+.clean-steps li:last-child{padding-bottom:0}
+.clean-steps li:last-child::after{display:none}
+.clean-steps li.is-ai::before{background:rgb(var(--accent));border-color:rgb(var(--accent));box-shadow:0 0 0 4px rgb(var(--accent) / .18)}
+.clean-steps h3{font-size:clamp(19px,2vw,23px);margin:8px 0 6px}
+.clean-steps p{color:rgb(var(--muted));font-size:14px;margin:0}
+@media(max-width:1100px){
+  .clean-layout{grid-template-columns:1fr;gap:30px}
+  .clean-video{width:min(100%,340px)!important;min-width:0;margin:0 auto}
+  /* 手機：標題 → 影片 → AI 說明 → 四道挑豆 */
+  .clean-text{display:contents}
+  .clean-text .story-chapter-head{order:1;margin-bottom:0}
+  .clean-video{order:2}
+  .clean-ai{order:3}
+  .clean-steps{order:4;margin-top:6px}
+}
+@media(max-width:767px){.clean-ai{padding:20px 20px}.clean-steps{margin-top:30px}.clean-steps li{padding-left:32px}}

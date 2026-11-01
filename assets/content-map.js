@@ -11,7 +11,7 @@ window.COFFEE_CONTENT_MAP = [
     { title: '頁尾', items: [
       ['home.footer.tagline', '頁尾標語'],
       ['home.footer.col1', '第 1 欄標題'], ['home.footer.all', '第 1 欄：所有咖啡'], ['home.footer.treats', '第 1 欄：手作點心'], ['home.footer.subscribe', '第 1 欄：月費訂購'], ['home.footer.flavor', '第 1 欄：依風味選豆'],
-      ['home.footer.col2', '第 2 欄標題'], ['home.footer.story', '第 2 欄：品牌故事'],
+      ['home.footer.col2', '第 2 欄標題'], ['home.footer.story', '第 2 欄：品牌故事'], ['home.footer.clean', '第 2 欄：乾淨的豆・AI 挑豆'], ['home.footer.roast', '第 2 欄：烘焙專研'],
       ['home.footer.col3', '第 3 欄標題'], ['home.footer.faq', '第 3 欄：常見問題'], ['home.footer.contact', '第 3 欄：聯絡與合作（點了會寄信到客服信箱）'], ['home.footer.checkout', '第 3 欄：購物車與結帳'],
       ['home.footer.top', '回到頂部連結'], ['site.footer.copyright', '最下方版權文字']
     ] }
