@@ -160,3 +160,12 @@ body:has(.social-float) .footer-bottom{padding-right:90px}
   .clean-steps{order:4;margin-top:6px}
 }
 @media(max-width:767px){.clean-ai{padding:20px 20px}.clean-steps{margin-top:30px}.clean-steps li{padding-left:32px}}
+
+/* 手機頁尾：探索咖啡／認識我們／顧客支援 三欄並排（品牌與標語在上方整行）（2026-11-01） */
+@media(max-width:767px){
+  .footer-top{grid-template-columns:repeat(3,minmax(0,1fr));gap:26px 14px}
+  .footer-top>div:first-child{grid-column:1/-1}
+  .footer-top>div:last-child{grid-column:auto}
+  .footer-top h2,.footer-top>div:last-child h2{font-size:13px;white-space:nowrap;margin-bottom:12px}
+  .footer-top>div:not(:first-child)>a{font-size:11px;line-height:1.5;padding:4px 0}
+}
