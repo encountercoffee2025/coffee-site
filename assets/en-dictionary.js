@@ -993,6 +993,8 @@ window.COFFEE_EN = {
   "AI 光學色選": "AI optical sorting",
   "以 AI 光學辨識逐顆判讀生豆的色澤與外觀，剔除顏色異常與有瑕疵的豆子。": "AI optical recognition reads the colour and appearance of every green bean and removes discoloured or defective ones.",
   "兩台烘焙機，依焙度選擇加熱方式。": "Two roasters, chosen by roast level.",
+  "每一支豆子，都值得被好好烘焙。": "Every bean deserves to be roasted well.",
+  "不同產區、不同處理法的豆子，各有適合的火候。我們依豆子的個性決定焙度與加熱方式，淺中焙交給熱風機，中焙與中深焙交給直火機，再在收到訂單後才開始烘，讓你喝到的，是這支豆子最好的樣子。": "Beans from different origins and processes each call for their own heat. We choose the roast level and heating method by each bean’s character — light-to-medium roasts go to the hot-air roaster, medium and medium-dark roasts to the direct-flame roaster — and we only roast once your order arrives, so what you taste is that coffee at its best.",
   "不同的焙度，適合不同的加熱方式。淺中焙交給三豆客 RX700 熱風機，中焙與中深焙交給三豆客 X3 直火機，讓淺中焙的花果香、中焙與中深焙的醇厚甜感，都能發揮出更好的風味。": "Different roast levels call for different kinds of heat. Light-medium roasts go on our Santoker RX700 hot-air roaster, while medium and medium-dark roasts go on our Santoker X3 direct-heat roaster, so the florals of a light-medium roast and the rich sweetness of medium and medium-dark roasts both come through at their best.",
   "烘焙工坊裡的咖啡烘焙機": "A coffee roaster in our roastery",
   "三豆客 X3 直火機": "Santoker X3 direct-heat roaster",

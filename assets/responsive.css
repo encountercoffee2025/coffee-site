@@ -169,3 +169,15 @@ body:has(.social-float) .footer-bottom{padding-right:90px}
   .footer-top h2,.footer-top>div:last-child h2{font-size:13px;white-space:nowrap;margin-bottom:12px}
   .footer-top>div:not(:first-child)>a{font-size:11px;line-height:1.5;padding:4px 0}
 }
+
+/* 首頁「乾淨的豆・AI 挑豆」區塊（與品牌故事 02 共用版型）（2026-11-01） */
+.clean-home h2{font-size:clamp(26px,3vw,38px);line-height:1.45;margin:0 0 20px}
+.clean-home .story-chapter-head>p:not(.section-kicker){color:rgb(var(--muted))}
+.clean-story-link{display:inline-flex;gap:10px;margin-top:24px}
+@media(max-width:1100px){.clean-story-link{order:5;margin-top:0;justify-self:start}}
+
+/* 品牌故事 03：烘焙機上方小標（2026-11-01） */
+.story-chapter .roast-sub{font-size:clamp(17px,1.8vw,22px);line-height:1.5;margin:0 0 22px;color:rgb(var(--ink))}
+/* 標題只在標點處換行（中文不從詞中間斷開），太長時仍可斷行避免爆版 */
+.story-chapter h2,.clean-home h2{word-break:keep-all;overflow-wrap:anywhere}
+@media(max-width:767px){.story-chapter .roast-sub{font-size:17px;margin-bottom:14px}}

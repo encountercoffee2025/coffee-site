@@ -25,14 +25,8 @@ window.COFFEE_CONTENT_MAP = [
     { title: '品牌堅持（主視覺下方三欄）', items: [
       ['home.notes.k1', '第 1 欄英文小字'], ['home.notes.t1', '第 1 欄文字'], ['home.notes.k2', '第 2 欄英文小字'], ['home.notes.t2', '第 2 欄文字'], ['home.notes.k3', '第 3 欄英文小字'], ['home.notes.t3', '第 3 欄文字']
     ] },
-    { title: '品牌介紹', items: [['home.intro.kicker', '英文小標'], ['home.intro.title', '標題'], ['home.intro.copy', '內文'], ['home.intro.link', '連結文字']] },
-    { title: '挑豆工藝', items: [
-      ['home.process.kicker', '英文小標'], ['home.process.title', '標題'], ['home.process.desc', '說明'], ['home.process.label', '圖片下方英文小字'],
-      ['home.process.img1', '第 1 道圖片'], ['home.process.s1t', '第 1 道名稱'], ['home.process.s1p', '第 1 道說明'],
-      ['home.process.img2', '第 2 道圖片', 'assets/dfbb85dbab88.jpg', '光學色選機篩選生豆'], ['home.process.s2t', '第 2 道名稱'], ['home.process.s2p', '第 2 道說明'],
-      ['home.process.img3', '第 3 道圖片', 'assets/be6d8bdd4156.jpg', '以人工檢視咖啡生豆的細節'], ['home.process.s3t', '第 3 道名稱'], ['home.process.s3p', '第 3 道說明'],
-      ['home.process.img4', '第 4 道圖片', 'assets/5f4e97466f3f.jpg', '剛烘焙完成、正在冷卻的咖啡豆'], ['home.process.s4t', '第 4 道名稱'], ['home.process.s4p', '第 4 道說明'],
-      ['home.process.link', '連結文字']
+    { title: '挑豆工藝（乾淨的豆・AI 挑豆）', items: [
+      ['home.process.link', '連結文字（標題、說明、影片與四道挑豆的文字和「品牌故事 → 02 乾淨的豆」共用，請到品牌故事頁修改）']
     ] },
     { title: '精選咖啡', items: [['home.collection.kicker', '英文小標'], ['home.collection.title', '標題'], ['home.collection.link', '連結文字']] },
     { title: '手作點心（精選咖啡下方）', items: [['home.treatblock.kicker', '英文小標'], ['home.treatblock.title', '標題'], ['home.treatblock.link', '連結文字']] },
@@ -82,7 +76,7 @@ window.COFFEE_CONTENT_MAP = [
       ['story.step4k', '第 4 道英文小字'], ['story.step4t', '第 4 道名稱'], ['story.step4p', '第 4 道說明']
     ] },
     { title: '03 烘焙專研', items: [
-      ['story.roastk', '英文小標'], ['story.roastt', '標題'], ['story.roastp', '說明'], ['story.stage1', '展示區：X3 標籤'], ['story.stage2', '展示區：RX700 標籤'],
+      ['story.roastk', '英文小標'], ['story.roastt', '標題'], ['story.roastp', '說明'], ['story.roastsub', '烘焙機上方小標'], ['story.stage1', '展示區：X3 標籤'], ['story.stage2', '展示區：RX700 標籤'],
       ['story.roaster1t', '烘焙機 1 名稱'], ['story.roaster1s', '烘焙機 1 英文小字'], ['story.roaster1p', '烘焙機 1 說明'],
       ['story.roaster2t', '烘焙機 2 名稱'], ['story.roaster2s', '烘焙機 2 英文小字'], ['story.roaster2p', '烘焙機 2 說明'],
       ['story.freshk', '新鮮烘焙英文小標'], ['story.fresht', '新鮮烘焙標題'], ['story.freshp', '新鮮烘焙說明'], ['story.freshlink', '按鈕文字']
