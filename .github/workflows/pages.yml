@@ -1,0 +1,40 @@
+# 網站部署：只把網頁需要的檔案（*.html、assets/、CNAME）放上 GitHub Pages。
+# docs/、supabase/、tests/、scripts/、README 等內部檔案不會出現在 encountercoffee2025.com。
+# 需要在 GitHub → Settings → Pages → Source 選「GitHub Actions」。
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect public site files
+        run: |
+          mkdir _site
+          cp *.html CNAME _site/
+          cp -r assets _site/assets
+          find _site/assets -name '*.md' -delete
+          echo "Published files:"; find _site -type f | sort | sed 's|^_site/||' | grep -v -E '\.(jpg|png|webp|mp4|svg)$'
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
