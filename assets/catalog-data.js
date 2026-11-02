@@ -1308,6 +1308,8 @@ window.COFFEE_SEED = {
       "home": 80
     },
     "freeShipping": 1500,
+    "frozenRate": 200,
+    "frozenFreeShipping": 2000,
     "carouselSeconds": 6,
     "supportEmail": "contact@pureselectcoffee.tw",
     "giftWrapFee": 80

@@ -49,7 +49,9 @@ export function taipeiTime(date) {
 export async function paymentForm(order, tradeNo, cfg, urls, now = new Date()) {
   const clean = s => String(s).replace(/[#&=<>"'\r\n|]/g, ' ').replace(/\s+/g, ' ').trim();
   const names = order.items.map(i => `${clean(i.name)} x ${i.quantity}`);
-  if (order.shipping) names.push('運費 x 1');
+  const frozen = order.frozenShipping || 0;
+  if (order.shipping - frozen) names.push('運費 x 1');
+  if (frozen) names.push('冷凍運費 x 1');
   let itemName = names.join('#');
   if (itemName.length > 200) itemName = itemName.slice(0, 197) + '...';
   const fields = {

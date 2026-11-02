@@ -72,8 +72,10 @@ await check('create order: server prices, shipping and stock; signed ECPay form'
   assert.equal(res.status, 200, JSON.stringify(body));
   assert.equal(res.headers.get('access-control-allow-origin'), 'https://encountercoffee2025.com');
   const guji = seed.products.find(p => p.id === 'guji').variants[0], fin = seed.treats.find(t => t.id === 'financier');
-  const subtotal = guji.price * 2 + fin.price, shipping = subtotal >= seed.settings.freeShipping ? 0 : seed.settings.shippingRates['711'];
-  assert.equal(body.total, subtotal + shipping);
+  // 咖啡與甜點分開算運費：甜點不計入咖啡免運，另收冷凍運費（甜點滿冷凍門檻才免）
+  const coffee = guji.price * 2, shipping = (coffee >= seed.settings.freeShipping ? 0 : seed.settings.shippingRates['711']) + (fin.price >= seed.settings.frozenFreeShipping ? 0 : seed.settings.frozenRate);
+  assert.equal(body.total, coffee + fin.price + shipping);
+  assert.match(body.payment.fields.ItemName, /冷凍運費 x 1/);
   assert.match(body.orderId, /^EC\d{8}[A-Z0-9]{6}$/);
   assert.equal(body.payment.action, 'https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5');
   assert.equal(body.payment.fields.TotalAmount, String(body.total));

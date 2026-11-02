@@ -63,7 +63,7 @@ export const deliveryLabel = d => S.deliveryLabels[d] || d;
 export function publicOrder(o) {
   return {
     id: o.id, createdAt: o.createdAt, status: o.status, payment: o.payment,
-    subtotal: o.subtotal, shipping: o.shipping, total: o.total,
+    subtotal: o.subtotal, shipping: o.shipping, frozenShipping: o.frozenShipping ?? 0, total: o.total,
     delivery: o.delivery, deliveryLabel: deliveryLabel(o.delivery),
     items: o.items.map(i => ({ name: lineSpec(i), quantity: i.quantity, price: i.price }))
   };
