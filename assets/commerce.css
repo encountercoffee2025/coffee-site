@@ -91,3 +91,12 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .free-ship.is-free p{margin:0}
 .variant-options .sold-out{font-weight:600;color:#a3402d}
 .settings-subhead{margin:26px 0 4px;font-size:16px}
+
+.cart-group{margin:0 0 26px}
+.cart-group-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-left:4px solid #b9874f;border-radius:4px;background:rgba(185,135,79,.12)}
+.cart-group-head h3{margin:0;font-size:17px;font-weight:600;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cart-group-head h3 small{font-size:12px;font-weight:400;opacity:.75}
+.cart-group-head>span{font-size:13px;white-space:nowrap}
+.cart-group-head strong{font-size:15px;margin-left:4px}
+.cart-group-treat .cart-group-head{border-left-color:#6fa8c9;background:rgba(111,168,201,.14)}
+.cart-group .format-note{margin-top:12px}
