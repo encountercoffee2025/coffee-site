@@ -18,7 +18,6 @@ window.COFFEE_CONTENT_MAP = [
   ] },
   { id: 'index.html', name: '首頁', sources: ['index.html'], groups: [
     { title: '主視覺（最上方大圖區）', items: [
-      ['home.hero.img1', '輪播大圖 1'], ['home.hero.img2', '輪播大圖 2'], ['home.hero.img3', '輪播大圖 3'],
       ['home.hero.eyebrow', '標題上方英文小字'], ['home.hero.title', '大標題'], ['home.hero.desc', '標題下方介紹'],
       ['home.hero.buy', '左邊按鈕文字'], ['home.hero.story', '右邊按鈕文字'], ['home.hero.note1', '左下角標語 1'], ['home.hero.note2', '左下角標語 2'], ['home.hero.scroll', '下方「往下捲動」英文小字']
     ] },
