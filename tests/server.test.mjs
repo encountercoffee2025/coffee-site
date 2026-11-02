@@ -30,8 +30,8 @@ globalThis.fetch = async (url, init = {}) => {
   if (u.pathname === '/Cashier/CreditCardPeriodAction') { sent.push({ host: 'ecpay-cancel', body: Object.fromEntries(new URLSearchParams(init.body)) }); return new Response('MerchantID=3002607&RtnCode=1&RtnMsg=成功', { status: 200 }); }
   if (u.pathname === '/auth/v1/user') { const ok = [ADMIN, ADMIN_AAL1].includes(init.headers?.Authorization); return new Response(JSON.stringify(ok ? { id: '11111111-2222-3333-4444-555555555555' } : { msg: 'invalid' }), { status: ok ? 200 : 401 }); }
   const table = u.pathname.split('/').pop(), rows = tables[table];
-  const filters = [...u.searchParams].filter(([k]) => k !== 'select');
-  const match = r => filters.every(([k, v]) => v.startsWith('eq.') ? String(r[k]) === v.slice(3) : v.startsWith('cs.') ? r[k].includes(v.slice(4, -1)) : v.startsWith('in.(') ? v.slice(4, -1).split(',').includes(String(r[k])) : false);
+  const filters = [...u.searchParams].filter(([k]) => !['select', 'order', 'limit'].includes(k));
+  const match = r => filters.every(([k, v]) => v.startsWith('eq.') ? String(r[k]) === v.slice(3) : v.startsWith('neq.') ? String(r[k]) !== v.slice(4) : v.startsWith('lt.') ? String(r[k]) < v.slice(3) : v.startsWith('gte.') ? String(r[k]) >= v.slice(4) : v.startsWith('cs.') ? r[k].includes(v.slice(4, -1)) : v.startsWith('in.(') ? v.slice(4, -1).split(',').includes(String(r[k])) : false);
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status });
   if (u.pathname === '/rest/v1/rpc/save_catalog') {
     const { expected, pub, priv } = JSON.parse(init.body), m = tables.site_state.find(r => r.id === 'main');
@@ -103,17 +103,17 @@ await check('create order: server prices, shipping and stock; signed ECPay form'
   assert.equal(row.data.items[0].roast, 'medium');
 });
 
-await check('chosen payment method goes to ECPay and is kept on the order', async () => {
+await check('one-time orders are credit card only, whatever the browser asks for', async () => {
   reset();
-  for (const [method, expected] of [['ATM', 'ATM'], ['CVS', 'CVS'], ['Credit', 'Credit'], ['Bitcoin', 'ALL'], [undefined, 'ALL']]) {
+  for (const [method, expected] of [['ATM', 'Credit'], ['CVS', 'Credit'], ['Credit', 'Credit'], ['Bitcoin', 'Credit'], [undefined, 'Credit']]) {
     const body = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711', payMethod: method })).json();
     assert.equal(body.payment.fields.ChoosePayment, expected);
     assert.ok(await verifyMac(body.payment.fields, STAGE));
   }
-  assert.equal(tables.orders[0].data.payMethod, 'ATM');
+  assert.equal(tables.orders[0].data.payMethod, 'Credit');
   const { id, token } = tables.orders[0];
   const again = await (await post({ action: 'pay', id, token })).json();
-  assert.equal(again.payment.fields.ChoosePayment, 'ATM');
+  assert.equal(again.payment.fields.ChoosePayment, 'Credit');
 });
 
 await check('create order rejects bad input with a readable message', async () => {
@@ -372,6 +372,74 @@ await check('production mode: ECPay "simulated payment" notices never mark an or
   assert.equal(await res.text(), '1|OK');
   assert.equal(tables.orders[0].data.payment, 'unpaid');
   assert.ok(tables.orders[0].data.history.some(h => h.text.includes('模擬付款')));
+});
+
+const postFrom = (ip, body) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { origin: 'https://encountercoffee2025.com', 'content-type': 'application/json', 'x-forwarded-for': ip + ', 10.0.0.1' }, body: JSON.stringify(withStore(body)) }), ENV);
+const sweep = () => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout?sweep=1'), ENV);
+const age = (row, minutes) => { row.created_at = new Date(Date.now() - minutes * 60000).toISOString() };
+const stockOf = () => tables.site_state[0].data.products.find(p => p.id === 'guji').variants[0].stock;
+
+await check('unpaid orders older than 30 minutes are cancelled automatically and their stock comes back', async () => {
+  reset();
+  const start = stockOf();
+  const one = { action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 2 }], customer, delivery: '711' };
+  for (let i = 0; i < 4; i++) assert.equal((await post(one)).status, 200);
+  assert.equal(stockOf(), start - 8);
+  const [expired, paid, confirmed, fresh] = tables.orders;
+  age(expired, 31); age(paid, 45); age(confirmed, 45); age(fresh, 10);
+  paid.payment = 'paid'; paid.data.payment = 'paid';
+  confirmed.status = 'confirmed'; confirmed.data.status = 'confirmed';
+  const res = await (await sweep()).json();
+  assert.equal(res.released, 1);
+  assert.equal(expired.status, 'cancelled');
+  assert.equal(expired.data.reserved, false);
+  assert.ok(expired.data.history.some(h => h.text.includes('自動取消')));
+  assert.equal(paid.status, 'new'); assert.equal(confirmed.status, 'confirmed'); assert.equal(fresh.status, 'new');
+  assert.equal(stockOf(), start - 6, 'only the expired order gives its 2 bags back');
+  assert.ok(tables.site_private[0].data.ledger.some(m => m.reason === '取消訂單 ' + expired.id));
+  assert.equal((await (await sweep()).json()).released, 0, 'running again changes nothing');
+  assert.equal(stockOf(), start - 6);
+});
+
+await check('opening the cart (config) and placing a new order also release expired holds', async () => {
+  reset();
+  const start = stockOf();
+  await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 3 }], customer, delivery: '711' });
+  age(tables.orders[0], 40);
+  await handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout?config=1'), ENV);
+  assert.equal(tables.orders[0].status, 'cancelled');
+  assert.equal(stockOf(), start);
+  await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' });
+  age(tables.orders[1], 40);
+  await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' });
+  assert.equal(tables.orders[1].status, 'cancelled');
+  assert.equal(stockOf(), start - 1);
+});
+
+await check('the same visitor can place at most 5 orders in 10 minutes', async () => {
+  reset();
+  const one = { action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' };
+  for (let i = 0; i < 5; i++) assert.equal((await postFrom('203.0.113.7', one)).status, 200);
+  const blocked = await postFrom('203.0.113.7', one);
+  assert.equal(blocked.status, 429);
+  assert.match((await blocked.json()).error, /10 分鐘/);
+  assert.equal((await postFrom('198.51.100.2', one)).status, 200, 'another visitor is not affected');
+  assert.ok(tables.orders.every(o => /^[0-9a-f]{32}$/.test(o.client) && !JSON.stringify(o).includes('203.0.113.7')), 'only a hash is stored, never the IP');
+  tables.orders.forEach(o => age(o, 11));
+  assert.equal((await postFrom('203.0.113.7', one)).status, 200, 'allowed again after 10 minutes');
+});
+
+await check('payment that arrives after auto-cancel is flagged for refund and the owner gets a LINE message', async () => {
+  reset();
+  const body = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' })).json();
+  age(tables.orders[0], 31);
+  await sweep();
+  assert.equal(await (await ecpay(paidNotice(body.orderId, body.total), 'notify', NOTIFY_ENV)).text(), '1|OK');
+  const o = tables.orders[0].data;
+  assert.equal(o.status, 'cancelled'); assert.equal(o.payment, 'refund_pending');
+  const line = sent.find(x => x.host === 'api.line.me');
+  assert.match(line.body.messages[0].text, /已取消的訂單收到付款/);
+  assert.ok(!sent.some(x => x.host === 'api.resend.com'), 'no "thanks for your order" email for a cancelled order');
 });
 
 console.log(`${results.length} server checks passed`);

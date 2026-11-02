@@ -55,7 +55,7 @@ window.COFFEE_CONTENT_MAP = [
     { title: '訂購資料表單', items: [
       ['checkout.form.title', '表單標題', '訂購資料'], ['checkout.form.name', '欄位：姓名', '姓名'], ['checkout.form.email', '欄位：電子信箱', '電子信箱'], ['checkout.form.phone', '欄位：手機', '手機'],
       ['checkout.form.delivery', '配送方式標題', '配送方式'], ['checkout.form.pay', '付款方式標題', '付款方式'],
-      ['checkout.pay.credit', '付款按鈕：信用卡', '信用卡'], ['checkout.pay.atm', '付款按鈕：ATM', 'ATM 轉帳'], ['checkout.pay.cvs', '付款按鈕：超商代碼', '超商代碼繳費'],
+      ['checkout.pay.credit', '付款按鈕：信用卡', '信用卡'],
       ['checkout.form.storeHint', '選擇門市按鈕旁說明', '開啟超商官方門市地圖，選好後會自動帶回。'], ['checkout.form.note', '欄位：備註', '備註（選填）'],
       ['checkout.form.submit', '付款按鈕文字', '前往付款'], ['checkout.form.secure', '付款按鈕下方說明', '付款由綠界科技 ECPay 處理，本站不會經手你的卡號。']
     ] },

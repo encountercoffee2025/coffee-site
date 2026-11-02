@@ -1,8 +1,8 @@
 // 兩個 Edge Function 的處理邏輯（index.ts 只負責把請求交給這裡，Node 測試也直接呼叫這裡）。
-import { placeOrder, newOrderId, newToken, publicOrder, splitCatalog, mergeCatalog } from './core.js';
+import { placeOrder, newOrderId, newToken, publicOrder, splitCatalog, mergeCatalog, cancelOrders } from './core.js';
 import { ecpayConfig, mapConfig, paymentForm, periodicForm, cancelPeriod, verifyMac, paymentTypeLabel } from './ecpay.js';
 import { newSubscription, periodOrder, publicSubscription, addMonths, taipeiDate } from './subscription.js';
-import { notifyPaid } from './notify.js';
+import { notifyOwner, notifyPaid } from './notify.js';
 import { db } from './db.js';
 
 const site = env => (env.SITE_URL || 'https://encountercoffee2025.com').replace(/\/$/, '');
@@ -34,6 +34,42 @@ async function requireAdmin(req, env, D) {
   if (!user?.id || !/^[0-9a-f-]{36}$/.test(user.id) || aal !== 'aal2' || !(await D.get(`admins?user_id=eq.${user.id}&select=user_id`)).length) throw Object.assign(new Error('沒有後台權限，請重新登入'), { status: 401 });
 }
 
+// 未付款訂單保留庫存 30 分鐘，逾時自動取消並回補庫存（排程每 5 分鐘、每次下單與開啟購物車時都會檢查）
+export const HOLD_MINUTES = 30;
+export async function releaseExpired(D, now = new Date()) {
+  const before = new Date(now.getTime() - HOLD_MINUTES * 60000).toISOString();
+  // 只處理仍是「新訂單」的未付款訂單；後台已手動確認的訂單不會被自動取消
+  const rows = await D.get(`orders?payment=eq.unpaid&status=eq.new&created_at=lt.${before}&select=id,data,version&order=created_at.asc&limit=30`);
+  if (!rows.length) return 0;
+  // 先把訂單標成取消（版本號不符代表剛收到付款，跳過），再回補這些訂單的庫存
+  const reason = `超過 ${HOLD_MINUTES} 分鐘未完成付款，系統自動取消並釋放庫存`;
+  const cancelled = [];
+  for (const row of rows) {
+    const o = structuredClone(row.data);
+    o.status = 'cancelled';
+    o.history.push({ at: new Date().toISOString(), text: reason });
+    const saved = await D.update(`orders?id=eq.${row.id}&version=eq.${row.version}&payment=eq.unpaid`, { data: { ...o, reserved: false }, status: 'cancelled', version: row.version + 1, updated_at: new Date().toISOString() });
+    if (saved.length) cancelled.push(row.data);
+  }
+  const holding = cancelled.filter(o => o.reserved);
+  for (let attempt = 0; holding.length && attempt < 4; attempt++) {
+    const [[main], [priv]] = await Promise.all([D.get('site_state?id=eq.main&select=data,version'), D.get('site_private?id=eq.main&select=data')]);
+    const { catalog } = cancelOrders(mergeCatalog(main.data, priv?.data), holding, reason);
+    const { pub, priv: nextPriv } = splitCatalog(catalog);
+    if (await D.rpc('save_catalog', { expected: main.version, pub, priv: nextPriv })) break;
+  }
+  return cancelled.length;
+}
+
+// 同一個來源 10 分鐘內最多建立 5 筆訂單。只存 IP 的雜湊值，不存 IP 本身。
+const RATE_WINDOW_MINUTES = 10, RATE_MAX = 5;
+async function clientKey(req, env) {
+  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('x-real-ip') || req.headers.get('cf-connecting-ip') || '';
+  if (!ip) return null;
+  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('encounter|' + ip + '|' + String(env.SUPABASE_SERVICE_ROLE_KEY || '').slice(-16))));
+  return Array.from(bytes.slice(0, 16), b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function findOrder(D, id, token) {
   if (!ID.test(String(id)) || !TOKEN.test(String(token))) throw Object.assign(new Error('找不到這筆訂單'), { status: 404 });
   const [row] = await D.get(`orders?id=eq.${id}&select=id,token,trade_nos,data,version`);
@@ -56,7 +92,9 @@ export async function handleCheckout(req, env) {
   try {
     const cfg = ecpayConfig(env), D = db(env), url = new URL(req.url);
     if (req.method === 'GET') {
+      if (url.searchParams.has('sweep')) return reply(200, { released: await releaseExpired(D) });
       if (url.searchParams.has('config')) {
+        await releaseExpired(D).catch(err => console.error('releaseExpired', err));
         const [main] = await D.get('site_state?id=eq.main&select=data');
         return reply(200, { mode: cfg.mode, map: mapConfig(env), subscriptionsOpen: main?.data?.settings?.subscriptionsOpen === true });
       }
@@ -106,14 +144,21 @@ export async function handleCheckout(req, env) {
       return reply(200, { orderId: row.id, token: row.token, mode: cfg.mode, payment: await paymentForm(o, tradeNo, cfg, paymentURLs(env, row.id, row.token)) });
     }
 
+    const client = await clientKey(req, env);
+    if (client) {
+      const since = new Date(Date.now() - RATE_WINDOW_MINUTES * 60000).toISOString();
+      const recent = await D.get(`orders?client=eq.${client}&created_at=gte.${since}&select=id`);
+      if (recent.length >= RATE_MAX) return reply(429, { error: '短時間內下單次數太多，請 10 分鐘後再試；如需協助請來信聯絡我們' });
+    }
+    await releaseExpired(D).catch(err => console.error('releaseExpired', err));
     // 建立訂單：讀取最新商品資料 → 計算並扣庫存 → 寫入訂單 → 以版本號寫回商品資料（被搶先更新就重試）
     for (let attempt = 0; attempt < 4; attempt++) {
       const [[main], [priv]] = await Promise.all([D.get('site_state?id=eq.main&select=data,version'), D.get('site_private?id=eq.main&select=data')]);
       if (!main) throw new Error('商店資料尚未建立');
       const id = newOrderId(), token = newToken();
       const { order, catalog } = placeOrder(mergeCatalog(main.data, priv?.data), body, id);
-      if (['Credit', 'ATM', 'CVS'].includes(body.payMethod)) order.payMethod = body.payMethod;
-      await D.insert('orders', { id, token, trade_nos: [id], status: order.status, payment: order.payment, data: order });
+      order.payMethod = 'Credit';
+      await D.insert('orders', { id, token, trade_nos: [id], status: order.status, payment: order.payment, data: order, ...(client ? { client } : {}) });
       const { pub, priv: nextPriv } = splitCatalog(catalog);
       const saved = await D.rpc('save_catalog', { expected: main.version, pub, priv: nextPriv });
       if (saved) return reply(200, { orderId: id, token, total: order.total, mode: cfg.mode, payment: await paymentForm(order, id, cfg, paymentURLs(env, id, token)) });
@@ -164,7 +209,10 @@ export async function handleEcpay(req, env) {
       else if (cfg.mode === 'prod' && params.SimulatePaid === '1') o.history.push({ at, text: '收到綠界「模擬付款」通知（綠界不會實際撥款），未標記收款，請勿出貨' });
       else if (o.payment === 'unpaid') {
         o.ecpay = { tradeNo: params.TradeNo || '', merchantTradeNo: tradeNo, paymentType: params.PaymentType || '', paymentDate: params.PaymentDate || '', simulated: params.SimulatePaid === '1' };
-        if (o.status === 'cancelled') { o.payment = 'refund_pending'; o.history.push({ at, text: `訂單已取消但收到綠界付款（${label}），請處理退款` }) }
+        if (o.status === 'cancelled') {
+          o.payment = 'refund_pending'; o.history.push({ at, text: `訂單已取消但收到綠界付款（${label}），請處理退款` });
+          (await notifyOwner(`⚠️ 一遇・已取消的訂單收到付款\n訂單 ${o.id}\n金額 NT$ ${o.total}（${label}）\n顧客 ${o.customer.name}・${o.customer.phone}\n這筆訂單因逾時未付款已自動取消、庫存已釋放。請到後台確認：有庫存可聯絡顧客改為出貨，否則到綠界後台退款。`, env)).forEach(t => o.history.push({ at: new Date().toISOString(), text: t }));
+        }
         else { o.payment = 'paid'; paidNow = true; o.history.push({ at, text: `綠界付款完成（${label}）${params.SimulatePaid === '1' ? '・測試環境模擬付款' : ''}` }) }
       } else return text('1|OK');
     } else o.history.push({ at, text: `綠界付款未完成：${params.RtnMsg || params.RtnCode || '未知原因'}` });

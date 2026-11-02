@@ -19,6 +19,17 @@ export function newOrderId(now = new Date()) {
   return 'EC' + day + Array.from(crypto.getRandomValues(new Uint8Array(6)), b => ID_CHARS[b % ID_CHARS.length]).join('');
 }
 
+// 取消逾時未付款的訂單並回補庫存（與後台按「取消」相同的規則）。回傳新的商品資料與取消後的訂單。
+export function cancelOrders(catalog, orders, reason) {
+  storage.setItem(KEY, JSON.stringify({ ...catalog, version: 3, cart: [], orders, subscriptions: [] }));
+  for (const o of orders) {
+    S.updateOrder(o.id, { status: 'cancelled' });
+  }
+  const at = new Date().toISOString();
+  const done = S.state().orders.map(o => ({ ...o, history: [...o.history, { at, text: reason }] }));
+  return { catalog: S.cloudCatalog(), orders: done };
+}
+
 export const splitCatalog = c => S.splitCatalog(c);
 export const mergeCatalog = (pub, priv) => S.mergeCatalog(pub, priv);
 

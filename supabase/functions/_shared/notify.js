@@ -34,6 +34,18 @@ ${o.customerNote ? `<p>備註：${escapeHTML(o.customerNote)}</p>` : ''}
   return { subject: `一遇 Encounter Coffee 訂單確認 ${o.id}`, html };
 }
 
+export async function notifyOwner(text, env) {
+  if (!env.LINE_CHANNEL_ACCESS_TOKEN || !env.LINE_OWNER_USER_ID) return [];
+  try {
+    const res = await fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + env.LINE_CHANNEL_ACCESS_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: env.LINE_OWNER_USER_ID, messages: [{ type: 'text', text: String(text).slice(0, 4900) }] })
+    });
+    return [res.ok ? '已傳送 LINE 通知給店家' : `LINE 通知失敗（${res.status}）`];
+  } catch (err) { return ['LINE 通知失敗：' + err.message] }
+}
+
 export async function notifyPaid(o, paymentLabel, env) {
   const results = [];
   if (env.LINE_CHANNEL_ACCESS_TOKEN && env.LINE_OWNER_USER_ID) {

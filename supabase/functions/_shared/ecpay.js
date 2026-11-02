@@ -65,7 +65,7 @@ export async function paymentForm(order, tradeNo, cfg, urls, now = new Date()) {
     ReturnURL: urls.notify,
     OrderResultURL: urls.result,
     ClientBackURL: urls.back,
-    ChoosePayment: ['Credit', 'ATM', 'CVS'].includes(order.payMethod) ? order.payMethod : 'ALL',
+    ChoosePayment: 'Credit', // 只收信用卡：ATM／超商代碼付款期限長，會讓未付款訂單佔住庫存
     EncryptType: '1',
     CustomField1: order.id
   };
