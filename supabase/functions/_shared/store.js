@@ -139,9 +139,13 @@ export function loadStore(window, localStorage, CustomEvent) {
  // 資料庫會重排 JSON 欄位順序，比較時先排序欄位名稱。
  const canon=v=>JSON.stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);
  function cloudCatalog(s=state()){const c={version:s.version};cloudKeys.forEach(k=>c[k]=copy(s[k]));return c}
+ // 資安：庫存異動紀錄與烘焙批次細節（備註、包數、耗時）只給管理員看。公開的 site_state 只留前台需要的批次 ID 與烘焙日期，
+ // 完整資料存在 site_private（只有管理員與伺服器讀得到），兩者由資料庫函式 save_catalog 一次寫入。
+ function splitCatalog(c){return{pub:{...c,ledger:[],batches:c.batches.map(b=>({id:b.id,productId:b.productId,roastDate:b.roastDate,status:b.status,stockApplied:b.stockApplied,durationSeconds:600,packs:{'200':0},notes:''})),privateSplit:true},priv:{ledger:c.ledger,batches:c.batches}}}
+ function mergeCatalog(pub,priv){if(!pub?.privateSplit)return pub;const{privateSplit,...rest}=pub;return priv&&Array.isArray(priv.ledger)&&Array.isArray(priv.batches)?{...rest,ledger:priv.ledger,batches:priv.batches}:rest}
  function applyCloud(c){if(c?.version!==3||cloudKeys.some(k=>c[k]===undefined))error('雲端資料格式不相容');const s=state();if(cloudKeys.every(k=>canon(s[k])===canon(c[k])))return false;cloudKeys.forEach(k=>s[k]=copy(c[k]));const hasTreat=id=>s.treats.some(t=>t.id===id),hasProduct=id=>s.products.some(p=>p.id===id);s.cart=s.cart.filter(i=>i.kind==='treat'?hasTreat(i.treatId):s.products.some(p=>p.id===i.productId&&p.variants.some(v=>v.sku===i.sku)));s.orders=s.orders.filter(o=>o.items.every(i=>i.kind==='treat'?hasTreat(i.treatId):hasProduct(i.productId)));commit(s);return true}
  window.addEventListener('storage',event=>{if(event.key===KEY)window.dispatchEvent(new CustomEvent('coffee:change'))});
- window.CoffeeStore={state,localize,cloudCatalog,applyCloud,applyOrders,applySubscriptions,clearCart,cleanDemoText,cartDetails,addCart,addTreat,setCart,createOrder,updateOrder,saveProduct,deleteProduct,adjustStock,saveTreat,adjustTreatStock,addBatch,updateBatch,createSubscription,updateSubscription,saveSettings,exportData,importData,reset,today,validate,imageURL,statuses,payments,subStatuses,deliveries,deliveryLabels,formats,grinds,grindLabels,roasts,roastLabels,defaultRoast,roastPrefs,plans,formatOf,variantLabel,lineKey,isFrozen,tempOf};
+ window.CoffeeStore={state,localize,cloudCatalog,splitCatalog,mergeCatalog,applyCloud,applyOrders,applySubscriptions,clearCart,cleanDemoText,cartDetails,addCart,addTreat,setCart,createOrder,updateOrder,saveProduct,deleteProduct,adjustStock,saveTreat,adjustTreatStock,addBatch,updateBatch,createSubscription,updateSubscription,saveSettings,exportData,importData,reset,today,validate,imageURL,statuses,payments,subStatuses,deliveries,deliveryLabels,formats,grinds,grindLabels,roasts,roastLabels,defaultRoast,roastPrefs,plans,formatOf,variantLabel,lineKey,isFrozen,tempOf};
 })();
 
 return window.CoffeeStore;

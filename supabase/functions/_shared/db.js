@@ -16,6 +16,7 @@ export function db(env) {
     get: path => call('GET', path),
     insert: (table, row) => call('POST', table, row, 'return=representation'),
     update: (path, patch) => call('PATCH', path, patch, 'return=representation'),
-    remove: path => call('DELETE', path)
+    remove: path => call('DELETE', path),
+    rpc: (fn, args) => call('POST', 'rpc/' + fn, args)
   };
 }

@@ -18,6 +18,12 @@
   try { cachedTheme = localStorage.getItem(THEME_CACHE) } catch (_) {}
   if (document.body.dataset.page !== 'admin') applyTheme(S?.state().settings.theme || cachedTheme);
   const admin = document.body.dataset.page === 'admin';
+  // 資安：後台與編輯模式不允許被其他網站用 iframe 嵌入（防止誘騙點擊）
+  if ((admin || new URLSearchParams(location.search).get('edit') === '1') && window.top !== window.self) {
+    root.style.display = 'none';
+    try { window.top.location = window.self.location.href } catch (_) {}
+    return;
+  }
   const t = s => window.CoffeeI18n?.translate(s) ?? s;
   const remember = () => { try { localStorage.setItem(MARK, new Date().toISOString()) } catch (_) {} };
   const seen = () => { try { return !!localStorage.getItem(MARK) } catch (_) { return false } };
@@ -111,7 +117,8 @@
     return client.storage.from('images').getPublicUrl(path).data.publicUrl;
   }
   const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js';
-  const loadScript = src => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('無法載入 ' + src)); document.head.append(s) });
+  const SUPABASE_SRI = 'sha384-dl/4LkSyQ4uEucc48NM6VDZLAjLLq9yMzZ5JLXumBq7Ld33XBof73hseOqPhO89+';
+  const loadScript = src => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; if (src === SUPABASE_JS) { s.integrity = SUPABASE_SRI; s.crossOrigin = 'anonymous' } s.onload = resolve; s.onerror = () => reject(new Error('無法載入 ' + src)); document.head.append(s) });
   // 結帳：建立訂單、重新付款與查詢訂單都交給伺服器（Supabase Edge Function checkout），付款在綠界頁面完成。
   async function callCheckout(method, body, query = '') {
     let res;
@@ -235,15 +242,18 @@
   const syncedOrders = new Map(), orderVersions = new Map();
   class Stale extends Error {}
   async function pull() {
-    const [{ data: main, error: mainError }, { data: orders, error: ordersError }] = await Promise.all([
+    const [{ data: main, error: mainError }, { data: priv, error: privError }, { data: orders, error: ordersError }] = await Promise.all([
       sb.from('site_state').select('data,version').eq('id', 'main').maybeSingle(),
+      sb.from('site_private').select('data').eq('id', 'main').maybeSingle(),
       sb.from('orders').select('id,data,version').order('created_at', { ascending: false }).limit(1000)
     ]);
-    if (mainError || ordersError) throw new Error((mainError || ordersError).message);
+    if (mainError || ordersError || privError) throw new Error((mainError || ordersError || privError).message);
+    // 公開資料已拆分但讀不到私有資料時停止，避免把空白的庫存紀錄存回去
+    if (main?.data?.privateSplit && !priv?.data) throw new Error('讀不到後台私有資料（庫存紀錄），請重新登入');
     // 月費訂閱（只顯示已授權成功的訂閱；取消要透過伺服器通知綠界）
     const { data: subs, error: subsError } = await sb.from('subscriptions').select('data').in('status', ['active', 'cancelled']).order('created_at', { ascending: false }).limit(1000);
     if (!subsError) S.applySubscriptions(subs.map(x => x.data));
-    if (main?.data) { S.applyCloud(main.data); catalogVersion = main.version; }
+    if (main?.data) { S.applyCloud(S.mergeCatalog(main.data, priv?.data)); catalogVersion = main.version; }
     synced = JSON.stringify(S.cloudCatalog());
     S.applyOrders(orders.map(o => o.data));
     syncedOrders.clear(); orderVersions.clear();
@@ -267,10 +277,11 @@
     const catalog = S.cloudCatalog(), json = JSON.stringify(catalog);
     if (json !== synced) {
       setStatus('同步中…', 'busy');
-      const { data, error } = await sb.from('site_state').update({ data: catalog, version: catalogVersion + 1, updated_at: now }).eq('id', 'main').eq('version', catalogVersion).select('version');
+      const { pub, priv } = S.splitCatalog(catalog);
+      const { data, error } = await sb.rpc('save_catalog', { expected: catalogVersion, pub, priv });
       if (error) throw new Error(error.message);
-      if (!data.length) throw new Stale('商品資料剛被更新（例如有新訂單扣了庫存），已載入最新資料，請再做一次剛才的修改');
-      catalogVersion = data[0].version; synced = json;
+      if (data == null) throw new Stale('商品資料剛被更新（例如有新訂單扣了庫存），已載入最新資料，請再做一次剛才的修改');
+      catalogVersion = data; synced = json;
     }
     setStatus('已同步雲端', 'ok');
   }
@@ -293,6 +304,45 @@
   window.addEventListener('focus', refresh);
   setInterval(refresh, 60000);
 
+  // 資安：後台登入需要兩步驟驗證（手機驗證器 App 的 6 位數字）。資料庫的 is_admin() 也只認完成兩步驟驗證的登入。
+  const mfaForm = document.createElement('form');
+  mfaForm.className = 'admin-panel'; mfaForm.id = 'cloud-mfa'; mfaForm.hidden = true;
+  gate.append(mfaForm);
+  async function ensureMfa() {
+    const { data: level, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error) throw new Error(error.message);
+    if (level.currentLevel === 'aal2') return;
+    const { data: list, error: listError } = await sb.auth.mfa.listFactors();
+    if (listError) throw new Error(listError.message);
+    let factor = list.totp.find(f => f.status === 'verified'), setup = null;
+    if (!factor) {
+      for (const f of list.all.filter(f => f.factor_type === 'totp' && f.status !== 'verified')) await sb.auth.mfa.unenroll({ factorId: f.id });
+      const { data, error: enrollError } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: '一遇後台 ' + new Date().toISOString().slice(0, 10) });
+      if (enrollError) throw new Error(enrollError.message);
+      factor = { id: data.id }; setup = data.totp;
+    }
+    form.hidden = true; mfaForm.hidden = false;
+    mfaForm.innerHTML = '<p class="section-kicker">TWO-STEP VERIFICATION</p><h1>' + (setup ? '設定兩步驟驗證' : '兩步驟驗證') + '</h1>' +
+      (setup ? '<p class="muted">第一次使用：請用手機的驗證器 App（Google Authenticator 或 Microsoft Authenticator）掃描下方 QR code，再輸入 App 顯示的 6 位數字。之後每次登入後台都需要輸入。</p><img class="mfa-qr" alt="兩步驟驗證 QR code" width="180" height="180"><p class="muted">無法掃描時，在 App 選「輸入設定金鑰」，帳戶名稱填「一遇後台」，金鑰：<code class="mfa-secret"></code></p>'
+        : '<p class="muted">請打開手機的驗證器 App，輸入「一遇後台」目前顯示的 6 位數字。</p>') +
+      '<label>6 位數驗證碼<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><p class="mfa-error" role="alert"></p><button class="primary-button" type="submit">驗證</button><button class="admin-back mfa-cancel" type="button">取消並登出</button>';
+    if (setup) { mfaForm.querySelector('.mfa-qr').src = setup.qr_code; mfaForm.querySelector('.mfa-secret').textContent = setup.secret; }
+    mfaForm.code.focus();
+    const close = () => { mfaForm.hidden = true; mfaForm.innerHTML = ''; mfaForm.onsubmit = null; form.hidden = false; };
+    return new Promise((resolve, reject) => {
+      mfaForm.onsubmit = async event => {
+        event.preventDefault();
+        const button = mfaForm.querySelector('[type=submit]'), note = mfaForm.querySelector('.mfa-error');
+        note.textContent = ''; button.disabled = true;
+        try {
+          const { error: verifyError } = await sb.auth.mfa.challengeAndVerify({ factorId: factor.id, code: mfaForm.code.value.trim() });
+          if (verifyError) throw new Error('驗證碼不正確或已過期，請看 App 上最新的數字再試一次');
+          close(); resolve();
+        } catch (err) { note.textContent = t(err.message); button.disabled = false; mfaForm.code.select(); }
+      };
+      mfaForm.querySelector('.mfa-cancel').onclick = async () => { await sb.auth.signOut(); close(); reject(new Error('已取消登入')); };
+    });
+  }
   async function enter() {
     const { data: isAdmin, error } = await sb.rpc('is_admin');
     if (error) throw new Error(error.message);
@@ -321,6 +371,7 @@
       const { error } = await sb.auth.signInWithPassword({ email: form.email.value.trim(), password: form.password.value });
       if (error) throw new Error('電子信箱或密碼不正確');
       form.password.value = '';
+      await ensureMfa();
       await enter();
     } catch (err) { loginError.textContent = t(err.message) }
     finally { button.disabled = false; button.textContent = t('登入'); }
@@ -331,7 +382,7 @@
     unlocked = false; root.classList.add('cloud-locked'); setStatus('');
   });
   if (!sb) loginError.textContent = t('登入元件載入失敗，請檢查網路後重新整理');
-  else sb.auth.getSession().then(({ data }) => data.session && enter()).catch(err => { loginError.textContent = t(err.message) });
+  else sb.auth.getSession().then(async ({ data }) => { if (data.session) { await ensureMfa(); await enter(); } }).catch(err => { loginError.textContent = t(err.message) });
 
   // 圖片上傳：在後台每個圖片網址欄位旁加「上傳圖片」，壓縮後存到 Supabase Storage，網址自動填入。
   const upload = file => uploadImage(sb, file);

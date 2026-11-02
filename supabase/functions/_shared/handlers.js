@@ -1,5 +1,5 @@
 // 兩個 Edge Function 的處理邏輯（index.ts 只負責把請求交給這裡，Node 測試也直接呼叫這裡）。
-import { placeOrder, newOrderId, newToken, publicOrder } from './core.js';
+import { placeOrder, newOrderId, newToken, publicOrder, splitCatalog, mergeCatalog } from './core.js';
 import { ecpayConfig, mapConfig, paymentForm, periodicForm, cancelPeriod, verifyMac, paymentTypeLabel } from './ecpay.js';
 import { newSubscription, periodOrder, publicSubscription, addMonths, taipeiDate } from './subscription.js';
 import { notifyPaid } from './notify.js';
@@ -28,7 +28,10 @@ async function requireAdmin(req, env, D) {
   const auth = req.headers.get('authorization') || '';
   const res = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: auth } });
   const user = res.ok ? await res.json() : null;
-  if (!user?.id || !/^[0-9a-f-]{36}$/.test(user.id) || !(await D.get(`admins?user_id=eq.${user.id}&select=user_id`)).length) throw Object.assign(new Error('沒有後台權限，請重新登入'), { status: 401 });
+  // 權杖已由上面的 /auth/v1/user 驗證過簽章；這裡再確認已完成兩步驟驗證（aal2）
+  let aal = '';
+  try { aal = JSON.parse(atob(auth.replace(/^Bearers+/i, '').split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).aal || '' } catch (_) {}
+  if (!user?.id || !/^[0-9a-f-]{36}$/.test(user.id) || aal !== 'aal2' || !(await D.get(`admins?user_id=eq.${user.id}&select=user_id`)).length) throw Object.assign(new Error('沒有後台權限，請重新登入'), { status: 401 });
 }
 
 async function findOrder(D, id, token) {
@@ -105,14 +108,15 @@ export async function handleCheckout(req, env) {
 
     // 建立訂單：讀取最新商品資料 → 計算並扣庫存 → 寫入訂單 → 以版本號寫回商品資料（被搶先更新就重試）
     for (let attempt = 0; attempt < 4; attempt++) {
-      const [main] = await D.get('site_state?id=eq.main&select=data,version');
+      const [[main], [priv]] = await Promise.all([D.get('site_state?id=eq.main&select=data,version'), D.get('site_private?id=eq.main&select=data')]);
       if (!main) throw new Error('商店資料尚未建立');
       const id = newOrderId(), token = newToken();
-      const { order, catalog } = placeOrder(main.data, body, id);
+      const { order, catalog } = placeOrder(mergeCatalog(main.data, priv?.data), body, id);
       if (['Credit', 'ATM', 'CVS'].includes(body.payMethod)) order.payMethod = body.payMethod;
       await D.insert('orders', { id, token, trade_nos: [id], status: order.status, payment: order.payment, data: order });
-      const saved = await D.update(`site_state?id=eq.main&version=eq.${main.version}`, { data: catalog, version: main.version + 1, updated_at: new Date().toISOString() });
-      if (saved.length) return reply(200, { orderId: id, token, total: order.total, mode: cfg.mode, payment: await paymentForm(order, id, cfg, paymentURLs(env, id, token)) });
+      const { pub, priv: nextPriv } = splitCatalog(catalog);
+      const saved = await D.rpc('save_catalog', { expected: main.version, pub, priv: nextPriv });
+      if (saved) return reply(200, { orderId: id, token, total: order.total, mode: cfg.mode, payment: await paymentForm(order, id, cfg, paymentURLs(env, id, token)) });
       await D.remove(`orders?id=eq.${id}`);
     }
     return reply(409, { error: '目前下單人數較多，請再按一次' });
@@ -157,6 +161,7 @@ export async function handleEcpay(req, env) {
     let paidNow = false;
     if (params.RtnCode === '1') {
       if (Number(params.TradeAmt) !== o.total) o.history.push({ at, text: `綠界回傳金額 ${params.TradeAmt} 與訂單金額 ${o.total} 不符，未標記收款，請到綠界後台確認` });
+      else if (cfg.mode === 'prod' && params.SimulatePaid === '1') o.history.push({ at, text: '收到綠界「模擬付款」通知（綠界不會實際撥款），未標記收款，請勿出貨' });
       else if (o.payment === 'unpaid') {
         o.ecpay = { tradeNo: params.TradeNo || '', merchantTradeNo: tradeNo, paymentType: params.PaymentType || '', paymentDate: params.PaymentDate || '', simulated: params.SimulatePaid === '1' };
         if (o.status === 'cancelled') { o.payment = 'refund_pending'; o.history.push({ at, text: `訂單已取消但收到綠界付款（${label}），請處理退款` }) }
@@ -180,7 +185,8 @@ async function subscriptionNotice(D, env, params, isPeriod) {
     const n = isPeriod ? Number(params.TotalSuccessTimes) : 1, amount = Number(isPeriod ? params.Amount : params.TradeAmt);
     let order = null;
     if (params.RtnCode === '1') {
-      if (amount !== sub.price) sub.history.push({ at, text: `綠界回傳金額 ${amount} 與方案金額 ${sub.price} 不符，未建立出貨訂單，請到綠界後台確認` });
+      if (ecpayConfig(env).mode === 'prod' && params.SimulatePaid === '1') sub.history.push({ at, text: '收到綠界「模擬付款」通知（綠界不會實際撥款），未建立出貨訂單' });
+      else if (amount !== sub.price) sub.history.push({ at, text: `綠界回傳金額 ${amount} 與方案金額 ${sub.price} 不符，未建立出貨訂單，請到綠界後台確認` });
       else if (!Number.isInteger(n) || n <= (sub.periods || 0)) return '1|OK';
       else if (sub.status === 'cancelled') sub.history.push({ at, text: `訂閱已取消但收到第 ${n} 期扣款，請到綠界後台確認並退款` });
       else {

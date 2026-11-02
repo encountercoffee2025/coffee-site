@@ -21,18 +21,26 @@ const catalog = () => JSON.parse(JSON.stringify({ version: 3, products: seed.pro
 
 const STAGE = { merchantId: '3002607', hashKey: 'pwFHCqoQZGmho4w6', hashIV: 'EkRm7iFT261dpevs' };
 let tables, sent, failNextCatalogWrite;
-function reset() { tables = { site_state: [{ id: 'main', data: catalog(), version: 1 }], orders: [], subscriptions: [], admins: [{ user_id: '11111111-2222-3333-4444-555555555555' }] }; sent = []; failNextCatalogWrite = false; }
+function reset() { tables = { site_state: [{ id: 'main', data: catalog(), version: 1 }], site_private: [], orders: [], subscriptions: [], admins: [{ user_id: '11111111-2222-3333-4444-555555555555' }] }; sent = []; failNextCatalogWrite = false; }
 
 // 假的 Supabase REST 與外部服務
 globalThis.fetch = async (url, init = {}) => {
   const u = new URL(url), method = init.method || 'GET';
   if (u.hostname === 'api.line.me' || u.hostname === 'api.resend.com') { sent.push({ host: u.hostname, body: JSON.parse(init.body) }); return new Response('{}', { status: 200 }); }
   if (u.pathname === '/Cashier/CreditCardPeriodAction') { sent.push({ host: 'ecpay-cancel', body: Object.fromEntries(new URLSearchParams(init.body)) }); return new Response('MerchantID=3002607&RtnCode=1&RtnMsg=成功', { status: 200 }); }
-  if (u.pathname === '/auth/v1/user') { const ok = init.headers?.Authorization === 'Bearer admin-session'; return new Response(JSON.stringify(ok ? { id: '11111111-2222-3333-4444-555555555555' } : { msg: 'invalid' }), { status: ok ? 200 : 401 }); }
+  if (u.pathname === '/auth/v1/user') { const ok = [ADMIN, ADMIN_AAL1].includes(init.headers?.Authorization); return new Response(JSON.stringify(ok ? { id: '11111111-2222-3333-4444-555555555555' } : { msg: 'invalid' }), { status: ok ? 200 : 401 }); }
   const table = u.pathname.split('/').pop(), rows = tables[table];
   const filters = [...u.searchParams].filter(([k]) => k !== 'select');
   const match = r => filters.every(([k, v]) => v.startsWith('eq.') ? String(r[k]) === v.slice(3) : v.startsWith('cs.') ? r[k].includes(v.slice(4, -1)) : v.startsWith('in.(') ? v.slice(4, -1).split(',').includes(String(r[k])) : false);
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status });
+  if (u.pathname === '/rest/v1/rpc/save_catalog') {
+    const { expected, pub, priv } = JSON.parse(init.body), m = tables.site_state.find(r => r.id === 'main');
+    if (failNextCatalogWrite) { failNextCatalogWrite = false; m.version++; return json(null); }
+    if (m.version !== expected) return json(null);
+    m.data = pub; m.version++;
+    const old = tables.site_private.find(r => r.id === 'main'); if (old) old.data = priv; else tables.site_private.push({ id: 'main', data: priv });
+    return json(m.version);
+  }
   if (method === 'GET') return json(structuredClone(rows.filter(match)));
   if (method === 'POST') { const row = { version: 1, created_at: new Date().toISOString(), ...JSON.parse(init.body) }; if (rows.some(r => r.id === row.id)) return json({ message: 'duplicate' }, 409); rows.push(row); return json([row], 201); }
   if (method === 'PATCH') {
@@ -43,6 +51,8 @@ globalThis.fetch = async (url, init = {}) => {
   throw new Error('unexpected ' + method + ' ' + url);
 };
 
+const jwt = claims => 'Bearer x.' + Buffer.from(JSON.stringify(claims)).toString('base64url') + '.sig';
+const ADMIN = jwt({ aal: 'aal2' }), ADMIN_AAL1 = jwt({ aal: 'aal1' });
 const ENV = { SUPABASE_URL: 'https://demo.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'service', SITE_URL: 'https://encountercoffee2025.com' };
 const NOTIFY_ENV = { ...ENV, LINE_CHANNEL_ACCESS_TOKEN: 'line-token', LINE_OWNER_USER_ID: 'Uowner', RESEND_API_KEY: 'resend' };
 const MAIL_ENV = { ...NOTIFY_ENV, OWNER_EMAIL: 'owner@example.com' };
@@ -324,7 +334,8 @@ await check('cancel: admin only, tells ECPay to stop charging, later charges are
   const cancel = auth => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { 'content-type': 'application/json', ...(auth ? { authorization: auth } : {}) }, body: JSON.stringify({ action: 'cancel-subscription', id }) }), ENV);
   assert.equal((await cancel()).status, 401);
   assert.equal((await cancel('Bearer someone-else')).status, 401);
-  const res = await cancel('Bearer admin-session');
+  assert.equal((await cancel(ADMIN_AAL1)).status, 401, 'admin without two-step verification is refused');
+  const res = await cancel(ADMIN);
   assert.equal(res.status, 200);
   assert.equal(tables.subscriptions[0].status, 'cancelled');
   const call = sent.find(s => s.host === 'ecpay-cancel').body;
@@ -333,6 +344,34 @@ await check('cancel: admin only, tells ECPay to stop charging, later charges are
   assert.equal(tables.orders.length, 1);
   assert.ok(tables.subscriptions[0].data.history.some(h => h.text.includes('退款')));
   validState();
+});
+
+await check('inventory log and batch details stay private; public catalog only keeps what the shop pages need', async () => {
+  reset();
+  const before = tables.site_state[0].data.ledger.length;
+  const res = await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' });
+  assert.equal(res.status, 200);
+  const pub = tables.site_state[0].data, priv = tables.site_private[0].data;
+  assert.equal(pub.privateSplit, true);
+  assert.deepEqual(pub.ledger, []);
+  assert.ok(pub.batches.every(b => b.notes === '' && b.packs['200'] === 0 && b.roastDate));
+  assert.equal(priv.ledger.length, before + 1);
+  assert.ok(priv.batches.some(b => b.notes));
+  // 第二筆訂單：從私有表接續，不會遺失之前的紀錄
+  await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' });
+  assert.equal(tables.site_private[0].data.ledger.length, before + 2);
+});
+
+await check('production mode: ECPay "simulated payment" notices never mark an order paid', async () => {
+  reset();
+  const PROD = { ...ENV, ECPAY_MODE: 'prod', ECPAY_MERCHANT_ID: STAGE.merchantId, ECPAY_HASH_KEY: STAGE.hashKey, ECPAY_HASH_IV: STAGE.hashIV };
+  const body = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' }, PROD)).json();
+  const fields = { MerchantID: STAGE.merchantId, MerchantTradeNo: body.orderId, RtnCode: '1', RtnMsg: '交易成功', TradeNo: 'T1', TradeAmt: String(body.total), PaymentType: 'Credit_CreditCard', PaymentDate: '2026/11/02 12:00:00', SimulatePaid: '1' };
+  const signed = { ...fields, CheckMacValue: await checkMacValue(fields, STAGE.hashKey, STAGE.hashIV) };
+  const res = await handleEcpay(new Request('https://demo.supabase.co/functions/v1/ecpay?type=notify', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(signed).toString() }), PROD);
+  assert.equal(await res.text(), '1|OK');
+  assert.equal(tables.orders[0].data.payment, 'unpaid');
+  assert.ok(tables.orders[0].data.history.some(h => h.text.includes('模擬付款')));
 });
 
 console.log(`${results.length} server checks passed`);

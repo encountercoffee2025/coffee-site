@@ -19,6 +19,9 @@ export function newOrderId(now = new Date()) {
   return 'EC' + day + Array.from(crypto.getRandomValues(new Uint8Array(6)), b => ID_CHARS[b % ID_CHARS.length]).join('');
 }
 
+export const splitCatalog = c => S.splitCatalog(c);
+export const mergeCatalog = (pub, priv) => S.mergeCatalog(pub, priv);
+
 export const newToken = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
 
 export function placeOrder(catalog, input, id) {

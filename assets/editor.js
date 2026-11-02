@@ -68,7 +68,7 @@ body.ce-editing{padding-bottom:150px}
     const leave = new URL(location.href); leave.searchParams.delete('edit');
     if (!data.session) return stop(`<strong>請先登入後台</strong><span class="ce-count">登入後再回到這一頁就能編輯。</span><div class="ce-actions"><a class="ce-btn" href="${esc(leave.pathname + leave.search)}">離開編輯模式</a><a class="ce-btn ce-primary" href="admin-orders.html#content">前往後台登入</a></div>`);
     const { data: isAdmin, error } = await sb.rpc('is_admin');
-    if (error || !isAdmin) return stop(`<strong>此帳號沒有編輯權限</strong><div class="ce-actions"><a class="ce-btn" href="${esc(leave.pathname + leave.search)}">離開編輯模式</a></div>`);
+    if (error || !isAdmin) return stop(`<strong>此帳號沒有編輯權限，或尚未完成兩步驟驗證</strong><div class="ce-actions"><a class="ce-btn ce-primary" href="admin-orders.html#content">前往後台登入</a><a class="ce-btn" href="${esc(leave.pathname + leave.search)}">離開編輯模式</a></div>`);
     // 讀取最新內容，避免覆蓋其他裝置剛儲存的修改。
     const { data: row, error: readError } = await sb.from('site_state').select('data').eq('id', 'content').maybeSingle();
     if (readError) return stop(`<strong>無法讀取頁面內容</strong><span class="ce-count">${esc(readError.message)}</span>`);

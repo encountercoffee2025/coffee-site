@@ -28,6 +28,7 @@ html.cloud-locked .admin-layout{display:none}
 .cloud-gate input{width:100%;padding:11px 12px;border:1px solid #d9ddd4;background:#fff;color:#292d29;font:inherit}
 .cloud-gate .primary-button{margin-top:10px;padding:12px;cursor:pointer}
 #cloud-login-error{min-height:1em;margin:6px 0 0;color:#a3402d;font-size:13px}
+.cloud-gate .mfa-qr{background:#fff;padding:8px;border:1px solid #d9ddd4;margin:8px 0}.cloud-gate .mfa-secret{word-break:break-all;font-size:12px}.cloud-gate .mfa-error{color:#a3341f;min-height:1.2em;margin:6px 0 0}.cloud-gate .mfa-cancel{background:none;border:0;padding:0;text-align:left;cursor:pointer;color:inherit;text-decoration:underline}
 .cloud-gate .admin-back{margin-top:14px;font-size:12px}
 #cloud-status{margin-left:auto;letter-spacing:.04em}
 #cloud-status[data-kind=ok]{color:#3f6b48}
