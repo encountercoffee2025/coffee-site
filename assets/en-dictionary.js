@@ -1161,5 +1161,7 @@ window.COFFEE_EN = {
   "備註（選填）": "Notes (optional)",
   "顧客備註": "Customer notes",
   "備註不能超過 200 字": "Notes cannot exceed 200 characters",
-  "備註格式不正確": "Invalid notes"
+  "備註格式不正確": "Invalid notes",
+  "❄ 冷凍配送・另裝一箱寄出": "❄ Ships frozen · separate parcel",
+  "📦 常溫配送・可與咖啡同箱": "📦 Ships at room temperature · same box as coffee"
 };
