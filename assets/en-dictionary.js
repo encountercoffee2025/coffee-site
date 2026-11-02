@@ -1163,5 +1163,6 @@ window.COFFEE_EN = {
   "備註不能超過 200 字": "Notes cannot exceed 200 characters",
   "備註格式不正確": "Invalid notes",
   "❄ 冷凍配送・另裝一箱寄出": "❄ Ships frozen · separate parcel",
-  "📦 常溫配送・可與咖啡同箱": "📦 Ships at room temperature · same box as coffee"
+  "📦 常溫配送・可與咖啡同箱": "📦 Ships at room temperature · same box as coffee",
+  "📦❄ 常溫冷凍皆可・自動選最省的寄法": "📦❄ Room temp or frozen · we pick the cheapest way to ship"
 };

@@ -101,4 +101,5 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .cart-group-treat .cart-group-head{border-left-color:#6fa8c9;background:rgba(111,168,201,.14)}
 .cart-group .format-note{margin-top:12px}
 .treat-temp{display:inline-block;margin:0 0 10px;padding:3px 10px;border-radius:999px;font-size:12px;background:rgba(185,135,79,.14)}
+.treat-temp.is-either{background:linear-gradient(90deg,rgba(185,135,79,.16),rgba(111,168,201,.2))}
 .treat-temp.is-frozen{background:rgba(111,168,201,.18)}
