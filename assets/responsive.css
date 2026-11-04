@@ -181,3 +181,6 @@ body:has(.social-float) .footer-bottom{padding-right:90px}
 /* 標題只在標點處換行（中文不從詞中間斷開），太長時仍可斷行避免爆版 */
 .story-chapter h2,.clean-home h2{word-break:keep-all;overflow-wrap:anywhere}
 @media(max-width:767px){.story-chapter .roast-sub{font-size:17px;margin-bottom:14px}}
+
+/* 頁尾客服信箱（綠界審核要求可見聯絡方式）：長信箱可換行 */
+.footer-top .footer-contact a{display:inline;padding:0;overflow-wrap:anywhere;word-break:break-all}

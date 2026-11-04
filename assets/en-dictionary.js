@@ -576,6 +576,8 @@ window.COFFEE_EN = {
   "姓名": "Name",
   "電子信箱": "Email",
   "電話": "Phone",
+  "購物須知（付款・運費・退換貨）": "Shopping guide (payment, shipping, returns)",
+  "客服信箱": "Support email",
   "包數": "Bags",
   "移除": "Remove",
   "購物車": "Cart",
