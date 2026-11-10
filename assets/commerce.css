@@ -108,3 +108,12 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .catalog-kicker{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:10px}.catalog-copy .catalog-kicker .section-kicker{margin-bottom:0}
 .card-roasts{display:flex;flex-wrap:wrap;gap:6px}.card-roasts button{min-height:28px;padding:4px 11px;border:1px solid rgb(var(--line));border-radius:999px;background:rgb(var(--card));color:rgb(var(--ink));font-size:11px;line-height:1.4;cursor:pointer;transition:background .2s,border-color .2s,color .2s}.card-roasts button:hover{border-color:rgb(var(--primary))}.card-roasts button[aria-pressed=true]{background:rgb(var(--primary));border-color:rgb(var(--primary));color:rgb(var(--on-primary))}.card-roasts button:focus-visible{outline:2px solid rgb(var(--primary));outline-offset:2px}
 .roast-profile-editor{margin-top:22px}.roast-profile-editor fieldset{border:1px solid rgb(var(--line));padding:12px 14px;margin:12px 0}.roast-profile-editor legend{padding:0 6px;font-weight:500}
+/* 選購頁卡片（雜誌風）：直式大圖，產區、名稱、風味疊在照片下緣；下方為焙度按鈕與價格 */
+.catalog-grid .catalog-card{display:flex;flex-direction:column}.catalog-grid .catalog-card .catalog-photo{aspect-ratio:4/5;background:#fff}
+.catalog-overlay{position:absolute;left:0;right:0;bottom:0;padding:72px 20px 18px;background:linear-gradient(0deg,rgb(52 32 18 / .86) 0%,rgb(52 32 18 / .62) 55%,rgb(52 32 18 / 0) 100%);color:#fff}
+.catalog-overlay .catalog-origin{font:500 10px Inter,"Noto Serif TC",sans-serif;letter-spacing:.14em;opacity:.88}
+.catalog-overlay h2{font-size:20px;font-weight:500;line-height:1.5;margin-top:4px;color:#fff}
+.catalog-overlay .catalog-flavors{font-size:12px;letter-spacing:.04em;color:#fff;opacity:.92;margin:6px 0 0}
+.catalog-foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 18px;margin-top:auto}.catalog-foot strong{margin-left:auto;font:500 16px Inter,sans-serif}
+.catalog-grid .catalog-card .catalog-photo img{position:absolute;left:0;top:-14%;width:100%;height:114%;object-fit:cover;object-position:center}
+.catalog-grid .catalog-card .catalog-photo img.is-square{top:0;height:100%;object-fit:contain;object-position:center top}
