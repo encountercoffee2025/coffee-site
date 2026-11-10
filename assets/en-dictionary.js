@@ -310,6 +310,7 @@ window.COFFEE_EN = {
   "開啟超商官方門市地圖，選好後會自動帶回。": "Opens the convenience store's official map; your pick fills in automatically.",
   "請按下方「選擇門市」": "Use \"Choose store\" below",
   "請先選擇取貨門市": "Please choose a pickup store first",
+  "請先選擇烘焙度": "Please choose a roast level first",
   "取貨門市": "Pickup store",
   "取貨門市與配送方式不符，請重新選擇門市": "The store doesn't match the delivery option. Please choose again.",
   "店號": "Store no.",

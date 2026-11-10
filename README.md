@@ -23,7 +23,7 @@ Open http://127.0.0.1:4173/?lang=en or http://127.0.0.1:4173/?lang=zh. Stop the 
 | --- | --- |
 | `index.html` | Three-photo hero carousel, four palettes, featured coffees, selection story, brew guide and FAQ |
 | `shop.html` | Ten roasted coffees with an origin filter, English/Chinese search and sorting (roast and format are chosen on the product page) |
-| `product.html?id=guji` | Six-image gallery; step order: roast level (淺中焙/中焙/中深焙) → format (200g beans, drip, steep) → grind (beans only); stock, flavor, origin, roast date and duration |
+| `product.html?id=guji` | Six-image gallery; step order: roast level (淺中焙/中深焙; 中焙 is no longer offered, no preselection when the recommended roast was 中焙) → format (200g beans, drip, steep) → grind (beans only); stock, flavor, origin, roast date and duration |
 | `treats.html` | Four handmade treats with their own stock |
 | `subscribe.html` | Three subscription plans, delivery cycle, roast/grind preference and demo sign-up |
 | `checkout.html` | Shared demo cart (coffee and treats), delivery method (7-ELEVEN NT$60 / FamilyMart NT$60 / home NT$80, free over the threshold), optional order notes, weight/price calculations and local demo orders |
