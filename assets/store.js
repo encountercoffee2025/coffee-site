@@ -48,7 +48,10 @@
   p.variants.forEach((v,i)=>{if(i===0){if(v.format!==undefined||v.grams!==200||v.sku!==`${p.id}-200`)error('SKU 與克數不一致')}else{if(!extraFormats.includes(v.format)||v.sku!==`${p.id}-${v.format}`)error('濾掛／濾泡規格設定不正確');integer(v.count,'每盒入數',1,100);integer(v.grams,'每盒淨重',1,5000)}integer(v.price,'價格',1,100000);integer(v.stock,'庫存包數',0,100000)});
   if(new Set(p.variants.map(v=>v.sku)).size!==p.variants.length)error('規格重複');
   validateEn(p.en,enProductKeys,'商品');
+  validateRoastProfiles(p.roastProfiles);
  }
+ // 焙度風味與圖片（選填）：選購頁卡片點選焙度時，改顯示該焙度的風味標籤與圖片；沒填的欄位沿用商品本身的設定。
+ function validateRoastProfiles(rp){if(rp===undefined)return;if(!rp||typeof rp!=='object'||Array.isArray(rp))error('焙度風味設定格式不正確');const tags=(v,label)=>{if(v!==undefined&&(!Array.isArray(v)||!v.length||v.length>10||v.some(x=>typeof x!=='string'||!x.trim()||x.length>40)))error(label+'需為 1–10 個，每個 40 字以內')};Object.entries(rp).forEach(([r,o])=>{if(!roasts.includes(r)||!o||typeof o!=='object'||Array.isArray(o))error('焙度風味設定格式不正確');Object.keys(o).forEach(k=>{if(!['flavors','flavorsEn','image'].includes(k))error('焙度風味設定格式不正確')});tags(o.flavors,'焙度風味標籤');tags(o.flavorsEn,'焙度英文風味標籤');if(o.image!==undefined&&!imageURL(o.image))error('焙度圖片需為 assets/ 路徑、HTTPS 網址或 PNG/JPEG/WebP 圖片')})}
  function validateTreat(t){text(t.id,'點心 ID',60);if(!/^[a-z0-9-]+$/.test(t.id))error('點心 ID 僅可含小寫英文字、數字與連字號');['name','spec','shelf'].forEach(k=>text(t[k],k,60));text(t.description,'點心說明',300);if(!imageURL(t.image))error('圖片需為 assets/ 路徑、HTTPS 網址或 PNG/JPEG/WebP 圖片');if(typeof t.active!=='boolean')error('上架狀態必須是布林值');integer(t.price,'價格',1,100000);integer(t.stock,'庫存數量',0,100000);if(t.storage!==undefined&&!['frozen','ambient','either'].includes(t.storage))error('配送溫層不正確');validateEn(t.en,enTreatKeys,'點心')}
  const timestamp=v=>{if(typeof v!=='string'||!Number.isFinite(Date.parse(v)))error('紀錄時間格式不正確')};
  const customerFields=(c,label='訂購人')=>{text(c?.name,label,80);text(c?.email,'電子信箱',150);text(c?.phone,'電話',30);text(c?.address,'地址',300)};
