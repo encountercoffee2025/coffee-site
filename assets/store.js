@@ -43,8 +43,8 @@
   ['name','country','region','variety','process','roast','description'].forEach(k=>text(p[k],k,1200));
   if(!['floral','sweet','cocoa'].includes(p.flavor))error('請選擇風味分類');
   if(!Array.isArray(p.flavors)||!p.flavors.length||p.flavors.length>10||p.flavors.some(v=>typeof v!=='string'||v.length>40))error('請填寫 1–10 個風味描述');
-  if(!Array.isArray(p.gallery)||p.gallery.length<5||p.gallery.length>12)error('每款商品需要 5–12 張圖片');
-  if(new Set(p.gallery.map(i=>i.src)).size<5)error('每款商品至少需要 5 張不同圖片');p.gallery.forEach(i=>{if(!imageURL(i.src))error('圖片需為 assets/ 路徑、HTTPS 網址或 PNG/JPEG/WebP 圖片');text(i.alt,'圖片說明',200);text(i.label,'圖片標題',40)});
+  if(!Array.isArray(p.gallery)||p.gallery.length<4||p.gallery.length>12)error('每款商品需要 4–12 張圖片');
+  if(new Set(p.gallery.map(i=>i.src)).size<4)error('每款商品至少需要 4 張不同圖片');p.gallery.forEach(i=>{if(!imageURL(i.src))error('圖片需為 assets/ 路徑、HTTPS 網址或 PNG/JPEG/WebP 圖片');text(i.alt,'圖片說明',200);text(i.label,'圖片標題',40)});
   if(!Array.isArray(p.variants)||p.variants.length<1||p.variants.length>3)error('請保留 200g 咖啡豆規格');
   p.variants.forEach((v,i)=>{if(i===0){if(v.format!==undefined||v.grams!==200||v.sku!==`${p.id}-200`)error('SKU 與克數不一致')}else{if(!extraFormats.includes(v.format)||v.sku!==`${p.id}-${v.format}`)error('濾掛／濾泡規格設定不正確');integer(v.count,'每盒入數',1,100);integer(v.grams,'每盒淨重',1,5000)}integer(v.price,'價格',1,100000);integer(v.stock,'庫存包數',0,100000)});
   if(new Set(p.variants.map(v=>v.sku)).size!==p.variants.length)error('規格重複');
