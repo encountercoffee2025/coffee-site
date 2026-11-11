@@ -442,4 +442,66 @@ await check('payment that arrives after auto-cancel is flagged for refund and th
   assert.ok(!sent.some(x => x.host === 'api.resend.com'), 'no "thanks for your order" email for a cancelled order');
 });
 
+// 後台自動翻譯（DeepL）：用假的 DeepL 服務，確認權限、用語對照、輸入檢查與錯誤訊息
+const { handleTranslate, cleanItems, translateItems } = await import('../supabase/functions/_shared/translate.js');
+let deeplCalls = [], deeplStatus = 200;
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (url, init = {}) => {
+  const u = new URL(url);
+  if (u.hostname.endsWith('deepl.com')) {
+    const body = JSON.parse(init.body);
+    deeplCalls.push({ host: u.hostname, auth: init.headers.Authorization, body });
+    if (deeplStatus !== 200) return new Response('{}', { status: deeplStatus });
+    return new Response(JSON.stringify({ translations: body.text.map(t => ({ detected_source_language: 'ZH', text: 'en ' + t })) }), { status: 200 });
+  }
+  return realFetch(url, init);
+};
+const translateReq = (body, auth = ADMIN) => new Request('https://demo.supabase.co/functions/v1/translate', { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://encountercoffee2025.com', Authorization: auth }, body: JSON.stringify(body) });
+const TENV = { ...ENV, DEEPL_API_KEY: 'abc-123:fx' };
+
+await check('translate: only 2FA admins can call it, and the DeepL key never reaches the browser', async () => {
+  reset(); deeplCalls = []; deeplStatus = 200;
+  const items = [{ id: 'description', zh: '清楚的柑橘香氣伴隨白花感。' }];
+  assert.equal((await handleTranslate(translateReq({ items }, 'Bearer nope'), TENV)).status, 401);
+  assert.equal((await handleTranslate(translateReq({ items }, ADMIN_AAL1), TENV)).status, 401);
+  assert.equal(deeplCalls.length, 0);
+  const res = await handleTranslate(translateReq({ items }), TENV), body = await res.json();
+  assert.equal(res.status, 200);
+  assert.deepEqual(body, { translations: { description: 'en 清楚的柑橘香氣伴隨白花感。' } });
+  assert.ok(!JSON.stringify(body).includes('abc-123'));
+  assert.equal(deeplCalls[0].host, 'api-free.deepl.com', 'free keys use the free endpoint');
+  assert.equal(deeplCalls[0].auth, 'DeepL-Auth-Key abc-123:fx');
+  assert.equal(deeplCalls[0].body.source_lang, 'ZH'); assert.equal(deeplCalls[0].body.target_lang, 'EN-US');
+  assert.equal(res.headers.get('access-control-allow-origin'), 'https://encountercoffee2025.com');
+});
+
+await check('translate: coffee glossary wins, flavor tags are translated one by one and only unknown words go to DeepL', async () => {
+  deeplCalls = []; deeplStatus = 200;
+  const t = await translateItems([{ id: 'process', kind: 'text', zh: '水洗' }, { id: 'tags', kind: 'tags', zh: '檸檬、白花、香草、桂圓' }, { id: 'country', kind: 'text', zh: '衣索比亞' }], 'pro-key');
+  assert.deepEqual(t, { process: 'Washed', tags: 'Lemon, White florals, Vanilla, En 桂圓', country: 'Ethiopia' });
+  assert.equal(deeplCalls.length, 1); assert.deepEqual(deeplCalls[0].body.text, ['桂圓']);
+  assert.equal(deeplCalls[0].host, 'api.deepl.com', 'paid keys use the normal endpoint');
+  deeplCalls = [];
+  assert.deepEqual(await translateItems([{ id: 'a', kind: 'tags', zh: '檸檬，蜂蜜' }], 'k:fx'), { a: 'Lemon, Honey' });
+  assert.equal(deeplCalls.length, 0, 'nothing sent when every word is in the glossary');
+});
+
+await check('translate: validates input and reports missing key, bad key and used-up quota in Chinese', async () => {
+  reset(); deeplCalls = []; deeplStatus = 200;
+  assert.throws(() => cleanItems([]), /沒有需要翻譯/);
+  assert.throws(() => cleanItems([{ id: 'a b', zh: '字' }]), /格式不正確/);
+  assert.throws(() => cleanItems([{ id: 'a', zh: '字' }, { id: 'a', zh: '字' }]), /格式不正確/);
+  assert.throws(() => cleanItems([{ id: 'a', zh: 'x'.repeat(2001) }]), /最多 2000 字/);
+  assert.deepEqual(cleanItems([{ id: 'a', zh: '  ' }, { id: 'b', zh: '檸檬、白花', kind: 'tags' }, { id: 'c', zh: '說明', kind: 'weird' }]), [{ id: 'b', kind: 'tags', zh: '檸檬、白花' }, { id: 'c', kind: 'text', zh: '說明' }]);
+  const one = { items: [{ id: 'a', zh: '一段說明' }] };
+  const noKey = await handleTranslate(translateReq(one), ENV);
+  assert.equal(noKey.status, 503); assert.match((await noKey.json()).error, /DEEPL_API_KEY/);
+  deeplStatus = 403; const bad = await handleTranslate(translateReq(one), TENV);
+  assert.equal(bad.status, 503); assert.match((await bad.json()).error, /金鑰無效/);
+  deeplStatus = 456; const quota = await handleTranslate(translateReq(one), TENV);
+  assert.equal(quota.status, 429); assert.match((await quota.json()).error, /額度已用完/);
+  deeplStatus = 200;
+  assert.equal((await handleTranslate(new Request('https://demo.supabase.co/functions/v1/translate', { method: 'OPTIONS' }), TENV)).status, 204);
+});
+
 console.log(`${results.length} server checks passed`);

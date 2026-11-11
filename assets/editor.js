@@ -185,7 +185,7 @@ body.ce-editing{padding-bottom:150px}
     }
 
     // 工具列：顯示修改數量、儲存、放棄與離開。
-    bar.innerHTML = `<div class="ce-style" hidden><span class="ce-name"></span><span class="ce-field">字級<button type="button" class="ce-btn" data-size="-10" aria-label="縮小字">A−</button><output data-size-out>100%</output><button type="button" class="ce-btn" data-size="10" aria-label="放大字">A+</button></span><label class="ce-field">顏色<input type="color" data-color></label><label class="ce-field">每行最多<input type="number" min="4" max="80" step="1" placeholder="自動" data-width>字</label><label class="ce-field">行距<select data-lh><option value="">自動</option>${[1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.6].map(v => `<option value="${v}">${v}</option>`).join('')}</select></label><button type="button" class="ce-btn" data-style-reset>還原樣式</button></div><strong>${modeName}</strong><span class="ce-count"></span><div class="ce-actions"><a class="ce-btn" href="admin-orders.html#content" data-leave>回到後台</a><a class="ce-btn" href="${esc(leaveHref)}" data-leave>離開編輯</a><button type="button" class="ce-btn" data-discard>放棄修改</button><button type="button" class="ce-btn ce-primary" data-save>儲存</button></div>`;
+    bar.innerHTML = `<div class="ce-style" hidden><span class="ce-name"></span><span class="ce-field">字級<button type="button" class="ce-btn" data-size="-10" aria-label="縮小字">A−</button><output data-size-out>100%</output><button type="button" class="ce-btn" data-size="10" aria-label="放大字">A+</button></span><label class="ce-field">顏色<input type="color" data-color></label><label class="ce-field">每行最多<input type="number" min="4" max="80" step="1" placeholder="自動" data-width>字</label><label class="ce-field">行距<select data-lh><option value="">自動</option>${[1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.6].map(v => `<option value="${v}">${v}</option>`).join('')}</select></label><button type="button" class="ce-btn" data-style-reset>還原樣式</button></div><strong>${modeName}</strong><span class="ce-count"></span><div class="ce-actions"><a class="ce-btn" href="admin-orders.html#content" data-leave>回到後台</a><a class="ce-btn" href="${esc(leaveHref)}" data-leave>離開編輯</a>${en ? '<button type="button" class="ce-btn" data-translate>依中文自動翻譯</button>' : ''}<button type="button" class="ce-btn" data-discard>放棄修改</button><button type="button" class="ce-btn ce-primary" data-save>儲存</button></div>`;
     const count = bar.querySelector('.ce-count'), saveButton = bar.querySelector('[data-save]'), discard = bar.querySelector('[data-discard]');
     // 文字樣式：點一段文字後，工具列上方出現字級、顏色、每行字數與行距；只影響目前這個語言的頁面。
     const panel = bar.querySelector('.ce-style'), sizeOut = panel.querySelector('[data-size-out]'), colorIn = panel.querySelector('[data-color]'), widthIn = panel.querySelector('[data-width]'), lhIn = panel.querySelector('[data-lh]');
@@ -230,6 +230,32 @@ body.ce-editing{padding-bottom:150px}
     window.addEventListener('beforeunload', event => { if (!leaving && dirty()) { event.preventDefault(); event.returnValue = '' } });
     bar.querySelectorAll('[data-leave]').forEach(a => a.addEventListener('click', event => { if (dirty() && !confirm('還有修改沒有儲存，確定要離開嗎？')) event.preventDefault(); else leaving = true }));
     discard.onclick = () => { if (confirm('放棄這次所有還沒儲存的修改？')) { leaving = true; location.reload() } };
+
+    // 英文頁面：把中文改過的段落交給伺服器翻譯，填進頁面上的英文文字，確認後再按「儲存」。
+    const translateBtn = bar.querySelector('[data-translate]');
+    if (translateBtn) {
+      const sources = () => texts.filter(t => content.texts[t.key]?.zh);
+      translateBtn.title = '把中文頁面改過的文字翻成英文';
+      translateBtn.onclick = async () => {
+        const list = sources();
+        if (!list.length) return toast('中文頁面沒有改過的文字；沒改過的段落已經有內建英文。');
+        if (!confirm(`要把中文改過的 ${list.length} 段文字翻成英文，並取代目前的英文嗎？翻譯後請檢查，再按「儲存」。`)) return;
+        translateBtn.disabled = true; translateBtn.textContent = '翻譯中…';
+        try {
+          const result = await C.translate(list.map(t => ({ id: t.key, zh: content.texts[t.key].zh, kind: 'text' })), sb);
+          let n = 0;
+          for (const t of list) {
+            const value = result[t.key]; if (!value) continue;
+            t.span.textContent = '';
+            value.split('\n').forEach((part, i) => { if (i) t.span.append(document.createElement('br')); t.span.append(part) });
+            n++;
+          }
+          refresh();
+          toast(n ? `已翻譯 ${n} 段，請檢查後按「儲存」。` : '沒有取得翻譯結果，請再試一次。');
+        } catch (err) { toast('自動翻譯失敗：' + err.message) }
+        finally { translateBtn.disabled = false; translateBtn.textContent = '依中文自動翻譯' }
+      };
+    }
 
     saveButton.onclick = async () => {
       const empty = texts.filter(t => !read(t.span));

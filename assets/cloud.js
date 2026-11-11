@@ -135,8 +135,18 @@
     document.body.append(form);
     form.submit();
   }
+  // 後台自動翻譯：items = [{ id, zh, kind: 'text' | 'tags' }]，回傳 { id: 英文 }。用登入管理員的權杖呼叫伺服器。
+  async function translate(items, client) {
+    const { data } = await client.auth.getSession();
+    let res;
+    try { res = await fetch(CLOUD_URL + '/functions/v1/translate', { method: 'POST', headers: { apikey: CLOUD_KEY, Authorization: 'Bearer ' + (data.session?.access_token || ''), 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) }) }
+    catch (_) { throw new Error('無法連線到翻譯服務（翻譯功能可能尚未部署，或網路中斷）') }
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || (res.status === 404 ? '自動翻譯功能尚未部署' : '自動翻譯失敗，請稍後再試'));
+    return json.translations || {};
+  }
   const shared = {
-    url: CLOUD_URL, key: CLOUD_KEY, contentCache: CONTENT_CACHE, pause: () => { paused = true }, okImage, readText, writeText, cleanStyle, applyStyle, uploadImage, getContent: () => content, setContent: c => { content = c },
+    url: CLOUD_URL, key: CLOUD_KEY, translate, contentCache: CONTENT_CACHE, pause: () => { paused = true }, okImage, readText, writeText, cleanStyle, applyStyle, uploadImage, getContent: () => content, setContent: c => { content = c },
     checkout: input => callCheckout('POST', { action: 'create', ...input }),
     repay: (id, token) => callCheckout('POST', { action: 'pay', id, token }),
     orderStatus: (id, token) => callCheckout('GET', null, `?id=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`),

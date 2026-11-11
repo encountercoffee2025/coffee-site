@@ -24,7 +24,7 @@ async function findSubscription(D, id, token) {
 }
 
 // 只有後台管理員能取消訂閱：用登入者的權杖向 Supabase 確認身分，再查管理員名單
-async function requireAdmin(req, env, D) {
+export async function requireAdmin(req, env, D) {
   const auth = req.headers.get('authorization') || '';
   const res = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: auth } });
   const user = res.ok ? await res.json() : null;
@@ -75,6 +75,18 @@ async function findOrder(D, id, token) {
   const [row] = await D.get(`orders?id=eq.${id}&select=id,token,trade_nos,data,version`);
   if (!row || row.token !== token) throw Object.assign(new Error('找不到這筆訂單'), { status: 404 });
   return row;
+}
+
+// 只允許網站自己的網域呼叫（其他 Edge Function 共用）
+export function corsHeaders(req, env, methods = 'GET, POST, OPTIONS') {
+  const origin = req.headers.get('origin') || '';
+  return {
+    'Access-Control-Allow-Origin': ORIGINS.includes(origin) ? origin : site(env),
+    'Access-Control-Allow-Headers': 'content-type, apikey, authorization, x-client-info',
+    'Access-Control-Allow-Methods': methods,
+    Vary: 'Origin',
+    'Content-Type': 'application/json; charset=utf-8'
+  };
 }
 
 // 顧客下單、重新付款與查詢訂單狀態
