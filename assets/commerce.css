@@ -117,3 +117,5 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .catalog-foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 18px;margin-top:auto}.catalog-foot strong{margin-left:auto;font:500 16px Inter,sans-serif}
 .catalog-grid .catalog-card .catalog-photo img{position:absolute;left:0;top:-14%;width:100%;height:114%;object-fit:cover;object-position:center}
 .catalog-grid .catalog-card .catalog-photo img.is-square{top:0;height:100%;object-fit:contain;object-position:center top}
+
+.order-bulk{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;margin:-8px 0 20px}.order-bulk label,.order-pick{display:inline-flex;gap:6px;align-items:center;cursor:pointer}.order-pick{font-size:12px;margin:0 8px 6px 0}.order-bulk input,.order-pick input{width:16px;height:16px;margin:0;accent-color:#6f4a2f}#order-pick-count{display:inline-block;min-width:1.6em;margin-left:4px;font-variant-numeric:tabular-nums}.order-bulk-list{max-height:240px;overflow:auto;margin:10px 0 14px;padding-left:20px;font-size:13px;line-height:1.8}

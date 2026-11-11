@@ -264,6 +264,15 @@
   async function push() {
     const now = new Date().toISOString();
     // 先存訂單（取消訂單時，寧可少算庫存也不要重複販售），再存商品資料
+    const present = new Set(S.state().orders.map(o => o.id));
+    for (const [id, v] of [...orderVersions]) {
+      if (present.has(id)) continue;
+      setStatus('同步中…', 'busy');
+      const { data, error } = await sb.from('orders').delete().eq('id', id).eq('version', v).eq('status', 'cancelled').select('id');
+      if (error) throw new Stale('刪除訂單失敗：' + error.message);
+      if (!data.length) throw new Stale(`訂單 ${id} 沒有刪除成功（可能剛被更新，或 Supabase 尚未執行 07-delete-orders.sql），已重新載入`);
+      orderVersions.delete(id); syncedOrders.delete(id);
+    }
     for (const o of S.state().orders) {
       const json = JSON.stringify(o);
       if (!orderVersions.has(o.id) || syncedOrders.get(o.id) === json) continue;
