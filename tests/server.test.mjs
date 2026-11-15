@@ -429,6 +429,14 @@ await check('the same visitor can place at most 5 orders in 10 minutes', async (
   assert.equal((await postFrom('203.0.113.7', one)).status, 200, 'allowed again after 10 minutes');
 });
 
+await check('a forged x-forwarded-for cannot bypass the order limit when Cloudflare reports the real IP', async () => {
+  reset();
+  const one = { action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' };
+  const forged = i => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { origin: 'https://encountercoffee2025.com', 'content-type': 'application/json', 'cf-connecting-ip': '203.0.113.9', 'x-forwarded-for': `198.51.100.${i}, 10.0.0.1` }, body: JSON.stringify(withStore(one)) }), ENV);
+  for (let i = 0; i < 5; i++) assert.equal((await forged(i)).status, 200);
+  assert.equal((await forged(99)).status, 429, 'changing x-forwarded-for does not reset the limit');
+});
+
 await check('payment that arrives after auto-cancel is flagged for refund and the owner gets a LINE message', async () => {
   reset();
   const body = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' })).json();

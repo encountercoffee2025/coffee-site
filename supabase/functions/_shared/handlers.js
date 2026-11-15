@@ -30,7 +30,7 @@ export async function requireAdmin(req, env, D) {
   const user = res.ok ? await res.json() : null;
   // 權杖已由上面的 /auth/v1/user 驗證過簽章；這裡再確認已完成兩步驟驗證（aal2）
   let aal = '';
-  try { aal = JSON.parse(atob(auth.replace(/^Bearers+/i, '').split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).aal || '' } catch (_) {}
+  try { aal = JSON.parse(atob(auth.replace(/^Bearer\s+/i, '').split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).aal || '' } catch (_) {}
   if (!user?.id || !/^[0-9a-f-]{36}$/.test(user.id) || aal !== 'aal2' || !(await D.get(`admins?user_id=eq.${user.id}&select=user_id`)).length) throw Object.assign(new Error('沒有後台權限，請重新登入'), { status: 401 });
 }
 
@@ -62,9 +62,11 @@ export async function releaseExpired(D, now = new Date()) {
 }
 
 // 同一個來源 10 分鐘內最多建立 5 筆訂單。只存 IP 的雜湊值，不存 IP 本身。
+// 優先用 cf-connecting-ip：Supabase Edge Functions 前面是 Cloudflare，這個值由 Cloudflare 填入、顧客無法偽造；
+// x-forwarded-for 的第一段可以由呼叫端自己帶，只在沒有其他來源時才用。
 const RATE_WINDOW_MINUTES = 10, RATE_MAX = 5;
 async function clientKey(req, env) {
-  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('x-real-ip') || req.headers.get('cf-connecting-ip') || '';
+  const ip = (req.headers.get('cf-connecting-ip') || '').trim() || (req.headers.get('x-real-ip') || '').trim() || (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || '';
   if (!ip) return null;
   const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('encounter|' + ip + '|' + String(env.SUPABASE_SERVICE_ROLE_KEY || '').slice(-16))));
   return Array.from(bytes.slice(0, 16), b => b.toString(16).padStart(2, '0')).join('');
