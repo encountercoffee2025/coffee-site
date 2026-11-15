@@ -149,3 +149,8 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 
 /* 768–1000px：頂端選單多了「查詢訂單」，縮小間距讓它維持一行 */
 @media(min-width:768px) and (max-width:1000px){.shop-nav{gap:16px}.shop-nav nav{gap:16px}html[data-lang=en] .shop-nav nav{gap:10px;font-size:11px}}
+
+/* 後台訂單管理：年／月篩選與月份分組標題 */
+.admin-filters{flex-wrap:wrap}
+.order-month-row th{text-align:left;padding:14px 12px 10px;background:rgb(var(--primary) / .07);border-top:1px solid rgb(var(--line));font-weight:400}
+.order-month-row strong{font-size:14px;margin-right:12px}.order-month-row span{font-size:12px;color:rgb(var(--muted))}

@@ -8,7 +8,12 @@
     const text = String(value ?? '');
     if (lang !== 'en') return text;
     if (Object.hasOwn(dictionary, text.trim())) return text.replace(text.trim(), dictionary[text.trim()]);
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     return text
+      .replace(/^(\s*)(\d{4}) 年 (\d{1,2}) 月(\s*)$/, (_, a, y, m, b) => `${a}${monthNames[m - 1]} ${y}${b}`)
+      .replace(/^(\s*)(\d{4}) 年（(\d+) 筆）(\s*)$/, '$1$2 ($3)$4')
+      .replace(/^(\s*)(\d{1,2}) 月（(\d+) 筆）(\s*)$/, (_, a, m, n, b) => `${a}${monthNames[m - 1]} (${n})${b}`)
+      .replace(/^(\s*)(\d+) 筆訂單 · 營收 /, (_, a, n) => `${a}${n} ${n === '1' ? 'order' : 'orders'} · Revenue `)
       .replace(/將用備份的 (\d+) 款商品與 (\d+) 筆訂單取代目前資料。/g, 'Replace current data with $1 products and $2 orders from the backup.')
       .replace(/(\d+) 款熟豆選品，從花果香到可可尾韻。/g, '$1 roasted coffees, from floral aromas to cocoa finishes.')
       .replace(/找到 (\d+) 款熟豆/g, 'Found $1 coffees')
