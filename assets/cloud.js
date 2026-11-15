@@ -150,6 +150,8 @@
     checkout: input => callCheckout('POST', { action: 'create', ...input }),
     repay: (id, token) => callCheckout('POST', { action: 'pay', id, token }),
     orderStatus: (id, token) => callCheckout('GET', null, `?id=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`),
+    lookupOrder: (id, phone) => callCheckout('POST', { action: 'lookup-order', id, phone }),
+    emailOrders: email => callCheckout('POST', { action: 'email-orders', email }),
     paymentMode: () => callCheckout('GET', null, '?config'),
     subscribe: input => callCheckout('POST', { action: 'subscribe', ...input }),
     subscriptionStatus: (id, token) => callCheckout('GET', null, `?sub=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`),

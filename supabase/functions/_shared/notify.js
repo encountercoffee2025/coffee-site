@@ -103,3 +103,31 @@ export async function notifyShipped(o, env, token) {
     return [res.ok ? '已寄出出貨通知信' : `出貨通知信寄送失敗（${res.status}）`];
   } catch (err) { return ['出貨通知信寄送失敗：' + err.message] }
 }
+
+// 「查詢訂單」寄給顧客的訂單清單：每筆附進度連結
+export function orderProgressLabel(o) {
+  if (o.payment === 'refunded') return '已退款';
+  if (o.status === 'cancelled') return o.payment === 'refund_pending' ? '已取消・退款處理中' : '已取消';
+  if (o.payment === 'unpaid') return '尚未付款';
+  return { new: '已付款', confirmed: '備貨中', packing: '備貨中', shipped: '已出貨', completed: '已完成' }[o.status] || '處理中';
+}
+export function orderListEmail(rows, site) {
+  const date = iso => new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
+  const items = rows.map(r => `<tr><td style="padding:12px 0;border-bottom:1px solid #eee"><strong>${escapeHTML(r.data.id)}</strong><br><span style="color:#6b6458;font-size:13px">${escapeHTML(date(r.data.createdAt || r.created_at))}・${money(r.data.total)}・${escapeHTML(orderProgressLabel(r.data))}</span></td><td style="padding:12px 0;border-bottom:1px solid #eee;text-align:right"><a href="${escapeHTML(orderLink(site, r.data.id, r.token))}" style="color:#8a5a2b">查看進度 →</a></td></tr>`).join('');
+  const html = `<div style="font-family:'Noto Sans TC',Arial,sans-serif;color:#292d29;max-width:560px;margin:auto;line-height:1.7">
+<h1 style="font-size:22px;font-weight:600">你在一遇的訂單</h1>
+<p>這是你在「查詢訂單」頁要求寄送的訂單連結。如果不是你本人操作，可以忽略這封信。</p>
+<table style="width:100%;border-collapse:collapse;font-size:14px">${items}</table>
+<p><a href="${escapeHTML(site)}" style="color:#8a5a2b">一遇 Encounter Coffee</a></p></div>`;
+  return { subject: '一遇 Encounter Coffee 訂單查詢', html };
+}
+export async function notifyOrderList(email, rows, env) {
+  if (!env.RESEND_API_KEY) return false;
+  const site = env.SITE_URL || 'https://encountercoffee2025.com', { subject, html } = orderListEmail(rows, site);
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: env.MAIL_FROM || '一遇 Encounter Coffee <order@encountercoffee2025.com>', to: [email], ...(env.REPLY_TO || env.OWNER_EMAIL ? { reply_to: env.REPLY_TO || env.OWNER_EMAIL } : {}), subject, html })
+  }).catch(() => null);
+  return Boolean(res?.ok);
+}

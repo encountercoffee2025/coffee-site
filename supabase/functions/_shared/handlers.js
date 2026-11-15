@@ -2,7 +2,7 @@
 import { placeOrder, newOrderId, newToken, publicOrder, splitCatalog, mergeCatalog, cancelOrders } from './core.js';
 import { ecpayConfig, mapConfig, paymentForm, periodicForm, cancelPeriod, verifyMac, paymentTypeLabel, refundCredit, inCloseWindow } from './ecpay.js';
 import { newSubscription, periodOrder, publicSubscription, addMonths, taipeiDate } from './subscription.js';
-import { notifyOwner, notifyPaid, notifyShipped } from './notify.js';
+import { notifyOwner, notifyPaid, notifyShipped, notifyOrderList } from './notify.js';
 import { db } from './db.js';
 import { logisticsConfig, createShipment, printForm, shipmentCode, verifyLogisticsMac, pickupNameProblem, pickupPhoneProblem, SUB_TYPES, SENT_CODES, PICKED_UP_CODES } from './logistics.js';
 
@@ -197,6 +197,49 @@ async function clientKey(req, env) {
   return Array.from(bytes.slice(0, 16), b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// 次數限制（rate_events 表，見 docs/supabase/09-order-lookup.sql）：只存雜湊值與時間
+async function tooMany(D, kind, key, max, minutes) {
+  const since = new Date(Date.now() - minutes * 60000).toISOString();
+  return (await D.get(`rate_events?kind=eq.${kind}&key=eq.${key}&created_at=gte.${since}&select=id`)).length >= max;
+}
+const recordEvent = (D, kind, key) => D.insert('rate_events', { kind, key });
+async function secretHash(value, env) {
+  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('encounter|' + value + '|' + String(env.SUPABASE_SERVICE_ROLE_KEY || '').slice(-16))));
+  return Array.from(bytes.slice(0, 16), b => b.toString(16).padStart(2, '0')).join('');
+}
+// 手機比對：只看數字，+886 開頭視為 0
+const phoneDigits = v => { const d = String(v ?? '').replace(/\D/g, ''); return d.startsWith('886') ? '0' + d.slice(3) : d };
+const LOOKUP_MAX = 10, LOOKUP_MINUTES = 10, MAIL_IP_MAX = 5, MAIL_TO_MAX = 3, MAIL_MINUTES = 60;
+
+// 查詢訂單 A：訂單編號＋下單手機 → 回傳進度頁需要的查詢碼
+export async function lookupOrder(req, env, D, body) {
+  const client = (await clientKey(req, env)) || 'unknown';
+  if (await tooMany(D, 'lookup', client, LOOKUP_MAX, LOOKUP_MINUTES)) throw Object.assign(new Error(`查詢次數太多，請 ${LOOKUP_MINUTES} 分鐘後再試；也可以改用 Email 寄送查詢連結`), { status: 429 });
+  await recordEvent(D, 'lookup', client);
+  const id = String(body.id ?? '').trim().toUpperCase(), phone = phoneDigits(body.phone);
+  const notFound = Object.assign(new Error('找不到符合的訂單，請確認訂單編號與下單時填寫的手機'), { status: 404 });
+  if (!ID.test(id) || phone.length < 8) throw notFound;
+  const [row] = await D.get(`orders?id=eq.${id}&select=id,token,data`);
+  if (!row || phoneDigits(row.data.customer?.phone) !== phone) throw notFound;
+  return { orderId: row.id, token: row.token };
+}
+
+// 查詢訂單 B：輸入 Email → 把這個信箱的訂單進度連結寄過去。不論有沒有訂單都回覆一樣的訊息，避免被用來查誰買過。
+export async function emailOrders(req, env, D, body) {
+  const email = String(body.email ?? '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 150) throw Object.assign(new Error('電子信箱格式不正確'), { status: 400 });
+  const client = (await clientKey(req, env)) || 'unknown', to = await secretHash('mail|' + email, env);
+  if (await tooMany(D, 'mail-ip', client, MAIL_IP_MAX, MAIL_MINUTES)) throw Object.assign(new Error('寄送次數太多，請 1 小時後再試'), { status: 429 });
+  if (await tooMany(D, 'mail-to', to, MAIL_TO_MAX, MAIL_MINUTES)) throw Object.assign(new Error('這個信箱剛寄過查詢信，請先查看收件匣與垃圾郵件匣，或 1 小時後再試'), { status: 429 });
+  await Promise.all([recordEvent(D, 'mail-ip', client), recordEvent(D, 'mail-to', to)]);
+  // ilike 不分大小寫，但 _ 和 * 是萬用字元：取回後再逐筆比對完全相同的信箱
+  const rows = (await D.get(`orders?data->customer->>email=ilike.${encodeURIComponent(email)}&select=id,token,data,created_at&order=created_at.desc&limit=30`))
+    .filter(r => String(r.data.customer?.email ?? '').trim().toLowerCase() === email && !(r.data.status === 'cancelled' && r.data.payment === 'unpaid'))
+    .slice(0, 20);
+  if (rows.length) await notifyOrderList(email, rows, env);
+  return { ok: true };
+}
+
 async function findOrder(D, id, token) {
   if (!ID.test(String(id)) || !TOKEN.test(String(token))) throw Object.assign(new Error('找不到這筆訂單'), { status: 404 });
   const [row] = await D.get(`orders?id=eq.${id}&select=id,token,trade_nos,data,version`);
@@ -297,6 +340,10 @@ export async function handleCheckout(req, env) {
       if (!row?.data?.shipment) return reply(404, { error: '這筆訂單還沒有寄件單' });
       return reply(200, { print: printForm(row.data.shipment, logisticsConfig(env), String(body.mode || '1')) });
     }
+
+    // 查詢訂單（顧客用，不需登入；有次數限制）
+    if (body.action === 'lookup-order') return reply(200, await lookupOrder(req, env, D, body));
+    if (body.action === 'email-orders') return reply(200, await emailOrders(req, env, D, body));
 
     if (body.action === 'pay') {
       const row = await findOrder(D, body.id, body.token), o = row.data;

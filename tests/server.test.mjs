@@ -24,7 +24,7 @@ const catalog = () => JSON.parse(JSON.stringify({ version: 3, products: seed.pro
 
 const STAGE = { merchantId: '3002607', hashKey: 'pwFHCqoQZGmho4w6', hashIV: 'EkRm7iFT261dpevs' };
 let tables, sent, failNextCatalogWrite, doAction = {}, logisticsFail = '';
-function reset() { tables = { site_state: [{ id: 'main', data: catalog(), version: 1 }], site_private: [], orders: [], subscriptions: [], admins: [{ user_id: '11111111-2222-3333-4444-555555555555' }] }; sent = []; failNextCatalogWrite = false; }
+function reset() { tables = { site_state: [{ id: 'main', data: catalog(), version: 1 }], site_private: [], orders: [], subscriptions: [], rate_events: [], admins: [{ user_id: '11111111-2222-3333-4444-555555555555' }] }; sent = []; failNextCatalogWrite = false; }
 
 // 假的 Supabase REST 與外部服務
 globalThis.fetch = async (url, init = {}) => {
@@ -43,7 +43,10 @@ globalThis.fetch = async (url, init = {}) => {
   if (u.pathname === '/auth/v1/user') { const ok = [ADMIN, ADMIN_AAL1].includes(init.headers?.Authorization); return new Response(JSON.stringify(ok ? { id: '11111111-2222-3333-4444-555555555555' } : { msg: 'invalid' }), { status: ok ? 200 : 401 }); }
   const table = u.pathname.split('/').pop(), rows = tables[table];
   const filters = [...u.searchParams].filter(([k]) => !['select', 'order', 'limit'].includes(k));
-  const match = r => filters.every(([k, v]) => v.startsWith('eq.') ? String(r[k]) === v.slice(3) : v.startsWith('neq.') ? String(r[k]) !== v.slice(4) : v.startsWith('lt.') ? String(r[k]) < v.slice(3) : v.startsWith('gte.') ? String(r[k]) >= v.slice(4) : v.startsWith('cs.') ? r[k].includes(v.slice(4, -1)) : v.startsWith('in.(') ? v.slice(4, -1).split(',').includes(String(r[k])) : false);
+  // 支援 JSON 路徑（data->customer->>email）與 ilike（不分大小寫，_ 與 * 為萬用字元，跟 PostgREST 一樣）
+  const field = (r, k) => k.includes('->') ? k.split(/->>?/).reduce((o, p) => o?.[p], r) : r[k];
+  const like = (value, pattern) => new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/[*%]/g, '.*').replace(/_/g, '.') + '$', 'i').test(String(value ?? ''));
+  const match = r => filters.every(([k, v]) => { const x = field(r, k); return v.startsWith('eq.') ? String(x) === v.slice(3) : v.startsWith('neq.') ? String(x) !== v.slice(4) : v.startsWith('lt.') ? String(x) < v.slice(3) : v.startsWith('gte.') ? String(x) >= v.slice(4) : v.startsWith('cs.') ? x.includes(v.slice(4, -1)) : v.startsWith('in.(') ? v.slice(4, -1).split(',').includes(String(x)) : v.startsWith('ilike.') ? like(x, v.slice(6)) : false });
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status });
   if (u.pathname === '/rest/v1/rpc/save_catalog') {
     const { expected, pub, priv } = JSON.parse(init.body), m = tables.site_state.find(r => r.id === 'main');
@@ -54,7 +57,7 @@ globalThis.fetch = async (url, init = {}) => {
     return json(m.version);
   }
   if (method === 'GET') return json(structuredClone(rows.filter(match)));
-  if (method === 'POST') { const row = { version: 1, created_at: new Date().toISOString(), ...JSON.parse(init.body) }; if (rows.some(r => r.id === row.id)) return json({ message: 'duplicate' }, 409); rows.push(row); return json([row], 201); }
+  if (method === 'POST') { const row = { version: 1, created_at: new Date().toISOString(), ...JSON.parse(init.body) }; if (row.id === undefined) row.id = rows.length + 1; if (rows.some(r => r.id === row.id)) return json({ message: 'duplicate' }, 409); rows.push(row); return json([row], 201); }
   if (method === 'PATCH') {
     if (table === 'site_state' && failNextCatalogWrite) { failNextCatalogWrite = false; tables.site_state[0].version++; return json([]); }
     const hit = rows.filter(match); hit.forEach(r => Object.assign(r, JSON.parse(init.body))); return json(structuredClone(hit));
@@ -820,6 +823,77 @@ await check('shipped email: sent automatically once when ECPay reports the parce
   assert.equal(mails().length, before + 1);
   assert.ok(mails().at(-1).html.includes('D88583026015'));
   assert.ok(mails().at(-1).html.includes('證件'));
+});
+
+
+// ===== 查詢訂單 =====
+const lookupFrom = (ip, body, env = ENV) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { origin: 'https://encountercoffee2025.com', 'content-type': 'application/json', 'cf-connecting-ip': ip }, body: JSON.stringify(body) }), env);
+async function paidOrderFor(c, env = MAIL_ENV) {
+  const body = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer: { ...customer, ...c }, delivery: '711' }, env)).json();
+  await ecpay(paidNotice(body.orderId, body.total), 'notify', env);
+  return body;
+}
+
+await check('lookup A: order number + ordering mobile returns the progress token; anything else is a generic not-found', async () => {
+  reset();
+  const { orderId, token } = await paidOrderFor({}, ENV);
+  const ok = await (await lookupFrom('198.51.100.1', { action: 'lookup-order', id: orderId.toLowerCase(), phone: '0912-345-678' })).json();
+  assert.deepEqual(ok, { orderId, token }, 'case-insensitive ID, phone digits only');
+  assert.equal((await (await lookupFrom('198.51.100.1', { action: 'lookup-order', id: orderId, phone: '+886912345678' })).json()).token, token, '+886 works');
+  for (const body of [{ id: orderId, phone: '0987654321' }, { id: 'EC20991231ZZZZZZ', phone: '0912345678' }, { id: 'nope', phone: '0912345678' }, { id: orderId, phone: '' }]) {
+    const res = await lookupFrom('198.51.100.1', { action: 'lookup-order', ...body });
+    assert.equal(res.status, 404); assert.match((await res.json()).error, /找不到符合的訂單/);
+  }
+  assert.ok(tables.rate_events.every(e => e.kind === 'lookup' && /^[0-9a-f]{32}$/.test(e.key)), 'only hashes are stored');
+  assert.ok(!JSON.stringify(tables.rate_events).includes('198.51.100.1'));
+});
+
+await check('lookup A: at most 10 tries per visitor in 10 minutes, then blocked even with the right phone', async () => {
+  reset();
+  const { orderId } = await paidOrderFor({}, ENV);
+  for (let i = 0; i < 10; i++) assert.equal((await lookupFrom('203.0.113.50', { action: 'lookup-order', id: orderId, phone: `09000000${String(i).padStart(2, '0')}` })).status, 404);
+  const blocked = await lookupFrom('203.0.113.50', { action: 'lookup-order', id: orderId, phone: '0912345678' });
+  assert.equal(blocked.status, 429); assert.match((await blocked.json()).error, /10 分鐘/);
+  assert.equal((await lookupFrom('203.0.113.51', { action: 'lookup-order', id: orderId, phone: '0912345678' })).status, 200, 'another visitor is fine');
+  tables.rate_events.forEach(e => { e.created_at = new Date(Date.now() - 11 * 60000).toISOString() });
+  assert.equal((await lookupFrom('203.0.113.50', { action: 'lookup-order', id: orderId, phone: '0912345678' })).status, 200, 'allowed again after 10 minutes');
+});
+
+await check('lookup B: emails progress links for that exact address only (case-insensitive), same reply either way', async () => {
+  reset();
+  const a1 = await paidOrderFor({ email: 'Buyer@Example.com' });
+  const a2 = await paidOrderFor({ email: 'buyer@example.com' });
+  const longer = await paidOrderFor({ email: 'buyer@example.com.tw' });
+  const other = await paidOrderFor({ email: 'b_yer@example.com' });
+  const abandoned = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer: { ...customer, email: 'buyer@example.com' }, delivery: '711' }, MAIL_ENV)).json();
+  age(tables.orders.find(r => r.id === abandoned.orderId), 31); await sweep();
+  sent = [];
+  const res = await lookupFrom('192.0.2.10', { action: 'email-orders', email: ' BUYER@example.com ' }, MAIL_ENV);
+  assert.equal(res.status, 200); assert.deepEqual(await res.json(), { ok: true });
+  const [mail] = sent.filter(s => s.host === 'api.resend.com').map(s => s.body);
+  assert.deepEqual(mail.to, ['buyer@example.com']);
+  assert.ok(mail.html.includes(`order=${a1.orderId}&amp;t=${a1.token}`) && mail.html.includes(`order=${a2.orderId}&amp;t=${a2.token}`), 'both orders of that address');
+  assert.ok(!mail.html.includes(other.orderId), '_ in another address is not a wildcard match');
+  assert.ok(!mail.html.includes(longer.orderId), 'a longer address is a different address');
+  assert.ok(!mail.html.includes(abandoned.orderId), 'never-paid cancelled orders are left out');
+  assert.ok(mail.html.includes('已付款'));
+  sent = [];
+  const none = await lookupFrom('192.0.2.11', { action: 'email-orders', email: 'nobody@example.com' }, MAIL_ENV);
+  assert.deepEqual(await none.json(), { ok: true }, 'same reply when there are no orders');
+  assert.equal(sent.filter(s => s.host === 'api.resend.com').length, 0, 'no email to addresses without orders');
+  assert.equal((await lookupFrom('192.0.2.11', { action: 'email-orders', email: 'not-an-email' }, MAIL_ENV)).status, 400);
+});
+
+await check('lookup B: limits 3 emails per address and 5 per visitor per hour', async () => {
+  reset();
+  await paidOrderFor({ email: 'buyer@example.com' });
+  for (let i = 0; i < 3; i++) assert.equal((await lookupFrom(`192.0.2.${20 + i}`, { action: 'email-orders', email: 'buyer@example.com' }, MAIL_ENV)).status, 200);
+  const perAddress = await lookupFrom('192.0.2.99', { action: 'email-orders', email: 'buyer@example.com' }, MAIL_ENV);
+  assert.equal(perAddress.status, 429); assert.match((await perAddress.json()).error, /這個信箱剛寄過/);
+  for (let i = 0; i < 5; i++) assert.equal((await lookupFrom('192.0.2.200', { action: 'email-orders', email: `x${i}@example.com` }, MAIL_ENV)).status, 200);
+  const perVisitor = await lookupFrom('192.0.2.200', { action: 'email-orders', email: 'x9@example.com' }, MAIL_ENV);
+  assert.equal(perVisitor.status, 429); assert.match((await perVisitor.json()).error, /1 小時/);
+  assert.ok(!JSON.stringify(tables.rate_events).includes('example.com'), 'addresses are stored only as hashes');
 });
 
 console.log(`${results.length} server checks passed`);
