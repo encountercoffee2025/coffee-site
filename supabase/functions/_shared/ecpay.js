@@ -111,6 +111,44 @@ export async function periodicForm(sub, cfg, urls, now = new Date()) {
   return { action: ECPAY_URL[cfg.mode], fields };
 }
 
+// 信用卡請退款（CreditDetail/DoAction）：只有正式環境能用，測試環境沒有真實授權。
+// 交易狀態決定要用哪個動作：已授權 → N 放棄；要關帳 → E 取消關帳再 N；已關帳 → R 退刷。
+// 查狀態的 API 需要另外的商家檢查碼，所以改為依序嘗試；狀態不符的動作綠界會直接拒絕、不會有任何效果。
+const DO_ACTION_URL = 'https://payment.ecpay.com.tw/CreditDetail/DoAction';
+export async function creditAction(trade, action, cfg) {
+  const fields = { MerchantID: cfg.merchantId, MerchantTradeNo: trade.merchantTradeNo, TradeNo: trade.tradeNo, Action: action, TotalAmount: String(trade.amount) };
+  fields.CheckMacValue = await checkMacValue(fields, cfg.hashKey, cfg.hashIV);
+  const res = await fetch(DO_ACTION_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(fields).toString() });
+  const body = await res.text();
+  const reply = Object.fromEntries(new URLSearchParams(body.trim()));
+  return { ok: reply.RtnCode === '1', message: reply.RtnMsg || body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || `HTTP ${res.status}` };
+}
+
+const ACTION_LABEL = { N: '放棄授權', E: '取消關帳', R: '退刷' };
+// 全額退款。回傳 { ok, method, message }；method 是實際成功的動作，例如「放棄授權」或「取消關帳＋放棄授權」。
+export async function refundCredit(trade, cfg) {
+  const tried = [];
+  const step = async action => {
+    const r = await creditAction(trade, action, cfg);
+    tried.push(`${ACTION_LABEL[action]}：${r.ok ? '成功' : r.message}`);
+    return r.ok;
+  };
+  if (await step('N')) return { ok: true, method: '放棄授權（尚未請款，款項不會入帳）' };
+  if (await step('E')) {
+    if (await step('N')) return { ok: true, method: '取消關帳＋放棄授權（尚未撥款）' };
+    return { ok: false, message: `已取消關帳，但放棄授權失敗（${tried.join('；')}）。請稍後再按一次退款。` };
+  }
+  if (await step('R')) return { ok: true, method: '退刷（已請款，款項會退回顧客信用卡）' };
+  return { ok: false, message: tried.join('；') };
+}
+
+// 每天 20:15～20:30 綠界在做自動關帳，不能呼叫請退款 API
+export function inCloseWindow(now = new Date()) {
+  const [h, m] = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(now).split(':').map(Number);
+  const minutes = h * 60 + m;
+  return minutes >= 20 * 60 + 15 && minutes < 20 * 60 + 30;
+}
+
 const PERIOD_ACTION_URL = { stage: 'https://payment-stage.ecpay.com.tw/Cashier/CreditCardPeriodAction', prod: 'https://payment.ecpay.com.tw/Cashier/CreditCardPeriodAction' };
 // 通知綠界停止之後的定期定額扣款；回傳 { ok, message }
 export async function cancelPeriod(tradeNo, cfg, now = new Date()) {

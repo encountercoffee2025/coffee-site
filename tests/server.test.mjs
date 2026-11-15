@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const base = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const { handleCheckout, handleEcpay } = await import('../supabase/functions/_shared/handlers.js');
+const { handleCheckout, handleEcpay, refundOrder } = await import('../supabase/functions/_shared/handlers.js');
+const { db } = await import('../supabase/functions/_shared/db.js');
+const { ecpayConfig, inCloseWindow } = await import('../supabase/functions/_shared/ecpay.js');
 const { checkMacValue, verifyMac } = await import('../supabase/functions/_shared/ecpay.js');
 
 const results = [];
@@ -20,13 +22,14 @@ const seed = seedContext.window.COFFEE_SEED;
 const catalog = () => JSON.parse(JSON.stringify({ version: 3, products: seed.products, treats: seed.treats, batches: seed.batches, ledger: seed.ledger, settings: seed.settings }));
 
 const STAGE = { merchantId: '3002607', hashKey: 'pwFHCqoQZGmho4w6', hashIV: 'EkRm7iFT261dpevs' };
-let tables, sent, failNextCatalogWrite;
+let tables, sent, failNextCatalogWrite, doAction = {};
 function reset() { tables = { site_state: [{ id: 'main', data: catalog(), version: 1 }], site_private: [], orders: [], subscriptions: [], admins: [{ user_id: '11111111-2222-3333-4444-555555555555' }] }; sent = []; failNextCatalogWrite = false; }
 
 // 假的 Supabase REST 與外部服務
 globalThis.fetch = async (url, init = {}) => {
   const u = new URL(url), method = init.method || 'GET';
   if (u.hostname === 'api.line.me' || u.hostname === 'api.resend.com') { sent.push({ host: u.hostname, body: JSON.parse(init.body) }); return new Response('{}', { status: 200 }); }
+  if (u.pathname === '/CreditDetail/DoAction') { const body = Object.fromEntries(new URLSearchParams(init.body)); sent.push({ host: 'ecpay-doaction', body }); const ok = doAction[body.Action] === true; return new Response(`MerchantID=${body.MerchantID}&MerchantTradeNo=${body.MerchantTradeNo}&TradeNo=${body.TradeNo}&RtnCode=${ok ? 1 : 0}&RtnMsg=${ok ? '成功' : encodeURIComponent('狀態不符')}`, { status: 200 }); }
   if (u.pathname === '/Cashier/CreditCardPeriodAction') { sent.push({ host: 'ecpay-cancel', body: Object.fromEntries(new URLSearchParams(init.body)) }); return new Response('MerchantID=3002607&RtnCode=1&RtnMsg=成功', { status: 200 }); }
   if (u.pathname === '/auth/v1/user') { const ok = [ADMIN, ADMIN_AAL1].includes(init.headers?.Authorization); return new Response(JSON.stringify(ok ? { id: '11111111-2222-3333-4444-555555555555' } : { msg: 'invalid' }), { status: ok ? 200 : 401 }); }
   const table = u.pathname.split('/').pop(), rows = tables[table];
@@ -510,6 +513,104 @@ await check('translate: validates input and reports missing key, bad key and use
   assert.equal(quota.status, 429); assert.match((await quota.json()).error, /額度已用完/);
   deeplStatus = 200;
   assert.equal((await handleTranslate(new Request('https://demo.supabase.co/functions/v1/translate', { method: 'OPTIONS' }), TENV)).status, 204);
+});
+
+// ===== 後台「取消並退款」 =====
+// 正式模式在台北時間 20:15～20:30 會擋下退款（綠界關帳時段），這段時間跑測試會失敗，請稍後再跑
+if (inCloseWindow(new Date())) throw new Error('台北時間 20:15～20:30 是綠界關帳時段，退款測試會被擋下，請 20:30 後再執行');
+const PRODENV = { ...ENV, ECPAY_MODE: 'prod', ECPAY_MERCHANT_ID: STAGE.merchantId, ECPAY_HASH_KEY: STAGE.hashKey, ECPAY_HASH_IV: STAGE.hashIV };
+const refundReq = (id, auth = ADMIN, env = PRODENV) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://encountercoffee2025.com', ...(auth ? { authorization: auth } : {}) }, body: JSON.stringify({ action: 'refund-order', id }) }), env);
+async function paidOrder(env = PRODENV) {
+  const body = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' }, env)).json();
+  assert.equal(await (await ecpay(paidNotice(body.orderId, body.total), 'notify', env)).text(), '1|OK');
+  return body;
+}
+const doActions = () => sent.filter(s => s.host === 'ecpay-doaction').map(s => s.body.Action).join('');
+
+await check('refund: only 2FA admins can call it', async () => {
+  reset(); doAction = { N: true };
+  const { orderId } = await paidOrder();
+  assert.equal((await refundReq(orderId, null)).status, 401);
+  assert.equal((await refundReq(orderId, ADMIN_AAL1)).status, 401);
+  assert.equal(doActions(), '', 'ECPay is never called for non-admins');
+  assert.equal(tables.orders[0].data.payment, 'paid');
+});
+
+await check('refund: authorized card is released (N), order cancelled and refunded, stock restored once', async () => {
+  reset(); doAction = { N: true };
+  const start = stockOf();
+  const { orderId, total } = await paidOrder();
+  assert.equal(stockOf(), start - 1);
+  const res = await refundReq(orderId);
+  assert.equal(res.status, 200, JSON.stringify(await res.clone().json()));
+  const call = sent.find(s => s.host === 'ecpay-doaction').body;
+  assert.equal(call.Action, 'N'); assert.equal(call.MerchantTradeNo, orderId); assert.equal(call.TradeNo, '2510311234567890'); assert.equal(call.TotalAmount, String(total));
+  assert.ok(await verifyMac(call, STAGE), 'DoAction is signed');
+  const o = tables.orders[0].data;
+  assert.equal(o.status, 'cancelled'); assert.equal(o.payment, 'refunded'); assert.equal(o.reserved, false);
+  assert.ok(o.history.some(h => h.text.includes('放棄授權')));
+  assert.equal(stockOf(), start);
+  assert.equal((await refundReq(orderId)).status, 200, 'a second click is harmless');
+  assert.equal(doActions(), 'N'); assert.equal(stockOf(), start);
+});
+
+await check('refund: picks the right ECPay action for to-be-closed and closed trades', async () => {
+  reset(); doAction = { E: true, N: false };
+  let { orderId } = await paidOrder();
+  let res = await refundReq(orderId);
+  assert.equal(res.status, 502); assert.match((await res.json()).error, /已取消關帳/);
+  assert.equal(tables.orders[0].data.payment, 'paid', 'partial ECPay success leaves the order unchanged');
+  reset(); doAction = { R: true };
+  ({ orderId } = await paidOrder());
+  res = await refundReq(orderId);
+  assert.equal(res.status, 200);
+  assert.equal(doActions(), 'NER', 'closed trade: N and E are refused, R refunds');
+  assert.ok(tables.orders[0].data.history.some(h => h.text.includes('退刷')));
+});
+
+await check('refund: when ECPay refuses everything the order and stock are left untouched', async () => {
+  reset(); doAction = {};
+  const start = stockOf();
+  const { orderId } = await paidOrder();
+  const res = await refundReq(orderId);
+  assert.equal(res.status, 502);
+  assert.match((await res.json()).error, /訂單沒有變更.*狀態不符/);
+  assert.equal(tables.orders[0].data.status, 'new'); assert.equal(tables.orders[0].data.payment, 'paid');
+  assert.equal(stockOf(), start - 1);
+});
+
+await check('refund: refuses unpaid, shipped, manually paid orders and the 20:15-20:30 close window', async () => {
+  reset(); doAction = { N: true };
+  const unpaid = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' }, PRODENV)).json();
+  assert.equal((await refundReq(unpaid.orderId)).status, 409);
+  const { orderId } = await paidOrder();
+  const row = tables.orders.find(r => r.id === orderId);
+  const D = db(PRODENV), cfg = ecpayConfig(PRODENV);
+  const at = (hh, mm) => new Date(`2026-11-15T${hh}:${mm}:00+08:00`);
+  assert.equal(inCloseWindow(at('20', '20')), true); assert.equal(inCloseWindow(at('20', '30')), false); assert.equal(inCloseWindow(at('20', '14')), false);
+  await assert.rejects(refundOrder(D, cfg, orderId, at('20', '20')), /20:15～20:30/);
+  row.data.status = 'shipped';
+  assert.match((await (await refundReq(orderId)).json()).error, /已出貨/);
+  row.data.status = 'new'; delete row.data.ecpay;
+  assert.match((await (await refundReq(orderId)).json()).error, /沒有綠界刷卡資料/);
+  assert.equal(doActions(), '', 'ECPay is never called in any refused case');
+});
+
+await check('refund: a cancelled order awaiting refund is refunded without restocking twice; stage mode never calls ECPay', async () => {
+  reset(); doAction = { N: true };
+  const start = stockOf();
+  const body = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' }, PRODENV)).json();
+  age(tables.orders[0], 31); await sweep();
+  assert.equal(stockOf(), start);
+  await ecpay(paidNotice(body.orderId, body.total), 'notify', PRODENV);
+  assert.equal(tables.orders[0].data.payment, 'refund_pending');
+  assert.equal((await refundReq(body.orderId)).status, 200);
+  assert.equal(tables.orders[0].data.payment, 'refunded'); assert.equal(stockOf(), start);
+  reset();
+  const s = await paidOrder(ENV);
+  assert.equal((await refundReq(s.orderId, ADMIN, ENV)).status, 200);
+  assert.equal(doActions(), ''); assert.ok(tables.orders[0].data.history.some(h => h.text.includes('測試環境')));
+  assert.equal(tables.orders[0].data.payment, 'refunded');
 });
 
 console.log(`${results.length} server checks passed`);

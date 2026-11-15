@@ -553,5 +553,15 @@
     await pull(); window.dispatchEvent(new CustomEvent('coffee:cloud'));
     return json;
   }
-  window.CoffeeCloud = { ...shared, client: sb, renderContent, cancelSubscription };
+  // 取消並退款：由伺服器呼叫綠界全額退款，成功後伺服器更新訂單與庫存，這裡只重新載入
+  async function refundOrder(id) {
+    await pushing;
+    const { data } = await sb.auth.getSession();
+    const res = await fetch(CLOUD_URL + '/functions/v1/checkout', { method: 'POST', headers: { apikey: CLOUD_KEY, Authorization: 'Bearer ' + (data.session?.access_token || ''), 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'refund-order', id }) });
+    const json = await res.json().catch(() => ({}));
+    try { await pull(); window.dispatchEvent(new CustomEvent('coffee:cloud')); } catch (_) {}
+    if (!res.ok) throw new Error(json.error || '退款失敗，請稍後再試');
+    return json;
+  }
+  window.CoffeeCloud = { ...shared, client: sb, renderContent, cancelSubscription, refundOrder };
 })();

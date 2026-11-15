@@ -1,6 +1,6 @@
 // 兩個 Edge Function 的處理邏輯（index.ts 只負責把請求交給這裡，Node 測試也直接呼叫這裡）。
 import { placeOrder, newOrderId, newToken, publicOrder, splitCatalog, mergeCatalog, cancelOrders } from './core.js';
-import { ecpayConfig, mapConfig, paymentForm, periodicForm, cancelPeriod, verifyMac, paymentTypeLabel } from './ecpay.js';
+import { ecpayConfig, mapConfig, paymentForm, periodicForm, cancelPeriod, verifyMac, paymentTypeLabel, refundCredit, inCloseWindow } from './ecpay.js';
 import { newSubscription, periodOrder, publicSubscription, addMonths, taipeiDate } from './subscription.js';
 import { notifyOwner, notifyPaid } from './notify.js';
 import { db } from './db.js';
@@ -59,6 +59,56 @@ export async function releaseExpired(D, now = new Date()) {
     if (await D.rpc('save_catalog', { expected: main.version, pub, priv: nextPriv })) break;
   }
   return cancelled.length;
+}
+
+// 已付款訂單的全額退款。綠界退款不能復原，所以順序是：檢查 → 綠界退款 → 成功才改訂單 → 回補庫存。
+export async function refundOrder(D, cfg, id, now = new Date()) {
+  const fail = (status, message) => Object.assign(new Error(message), { status });
+  if (!ID.test(id)) throw fail(404, '找不到這筆訂單');
+  const load = async () => (await D.get(`orders?id=eq.${id}&select=id,data,version`))[0];
+  const first = await load();
+  if (!first) throw fail(404, '找不到這筆訂單');
+  const o = first.data;
+  if (o.payment === 'refunded') return o;
+  const cancellable = o.payment === 'paid' && ['new', 'confirmed', 'packing'].includes(o.status);
+  if (!cancellable && !(o.payment === 'refund_pending' && o.status === 'cancelled')) {
+    throw fail(409, ['shipped', 'completed'].includes(o.status) ? '已出貨的訂單請先處理退貨，再到綠界後台退款' : '只有已收款、尚未出貨的訂單可以退款');
+  }
+  if (!o.ecpay?.tradeNo || !o.ecpay?.merchantTradeNo) throw fail(409, '這筆訂單沒有綠界刷卡資料（可能是手動標記收款），請到綠界後台處理退款');
+  if (cfg.mode === 'prod' && o.ecpay.simulated) throw fail(409, '這筆是模擬付款，沒有實際刷卡，不需要退款');
+
+  let method;
+  if (cfg.mode === 'prod') {
+    if (inCloseWindow(now)) throw fail(409, '綠界每天 20:15～20:30 進行關帳，這段時間不能退款，請 20:30 後再試');
+    const result = await refundCredit({ merchantTradeNo: o.ecpay.merchantTradeNo, tradeNo: o.ecpay.tradeNo, amount: o.total }, cfg);
+    if (!result.ok) throw fail(502, '綠界退款失敗，訂單沒有變更：' + result.message);
+    method = result.method;
+  } else method = '測試環境：未呼叫綠界退款';
+
+  // 綠界已退款：之後的步驟都要盡力完成，失敗也要清楚告訴管理員
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const row = attempt ? await load() : first;
+    const cur = row.data, at = new Date().toISOString();
+    // 退款期間若訂單剛好被改成已出貨，只記錄退款、不改出貨狀態也不回補庫存
+    const open = ['new', 'confirmed', 'packing'].includes(cur.status), restock = open && cur.reserved;
+    const next = { ...cur, status: open ? 'cancelled' : cur.status, payment: 'refunded', reserved: open ? false : cur.reserved, history: [...cur.history] };
+    if (open) next.history.push({ at, text: '後台取消訂單並退款' + (restock ? '，釋放庫存' : '') });
+    next.history.push({ at, text: `綠界全額退款 NT$ ${cur.total}：${method}` });
+    const saved = await D.update(`orders?id=eq.${id}&version=eq.${row.version}`, { data: next, status: next.status, payment: next.payment, version: row.version + 1, updated_at: at });
+    if (!saved.length) continue;
+    if (restock) {
+      let done = false;
+      for (let i = 0; i < 4 && !done; i++) {
+        const [[main], [priv]] = await Promise.all([D.get('site_state?id=eq.main&select=data,version'), D.get('site_private?id=eq.main&select=data')]);
+        const { catalog } = cancelOrders(mergeCatalog(main.data, priv?.data), [cur], '取消並退款');
+        const { pub, priv: nextPriv } = splitCatalog(catalog);
+        done = Boolean(await D.rpc('save_catalog', { expected: main.version, pub, priv: nextPriv }));
+      }
+      if (!done) throw fail(500, '綠界已退款、訂單已取消，但庫存回補失敗，請到庫存頁手動補回');
+    }
+    return next;
+  }
+  throw fail(500, '綠界已退款，但訂單狀態更新失敗，請重新整理後把這筆訂單改為已取消、已退款');
 }
 
 // 同一個來源 10 分鐘內最多建立 5 筆訂單。只存 IP 的雜湊值，不存 IP 本身。
@@ -147,6 +197,12 @@ export async function handleCheckout(req, env) {
       const saved = await D.update(`subscriptions?id=eq.${row.id}&version=eq.${row.version}`, { data: sub, status: sub.status, version: row.version + 1, updated_at: at });
       if (!saved.length) return reply(409, { error: '訂閱剛被更新，請重新整理後再試' });
       return reply(200, { subscription: sub });
+    }
+
+    // 後台「取消並退款」：先請綠界全額退款，成功後才把訂單改成已取消／已退款並回補庫存
+    if (body.action === 'refund-order') {
+      await requireAdmin(req, env, D);
+      return reply(200, { order: await refundOrder(D, cfg, String(body.id || '')) });
     }
 
     if (body.action === 'pay') {
