@@ -6,7 +6,7 @@ window.COFFEE_CONTENT_MAP = [
     { title: '頁首', items: [
       ['site.brand.sub', 'Logo 下方英文小字'],
       ['site.nav.home', '選單：首頁'], ['site.nav.shop', '選單：咖啡選購'], ['site.nav.treats', '選單：點心'], ['site.nav.subscribe', '選單：月費訂購'],
-      ['site.nav.story', '選單：品牌故事'], ['site.nav.cart', '選單：購物車']
+      ['site.nav.story', '選單：品牌故事'], ['site.nav.cart', '選單：購物車'], ['site.nav.orders', '選單：查詢訂單']
     ] },
     { title: '頁尾', items: [
       ['home.footer.tagline', '頁尾標語'],

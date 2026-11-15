@@ -146,3 +146,6 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 @media(max-width:767px){.pe-nav{.pe .image-editor-row>div:nth-child(2){grid-template-columns:1fr}top:-20px;margin:0 -20px;padding:10px 20px}.pe-section{padding:16px}.pe-formats,.pe-roasts{grid-template-columns:1fr}.pe .image-editor-row{grid-template-columns:72px minmax(0,1fr)}.pe .image-editor-row>img{width:72px;height:72px}.pe .image-row-actions{flex-direction:row;grid-column:1/-1}.pe .image-row-actions button{flex:1}.admin-dialog:has(.pe) .modal-actions{bottom:-20px;margin:20px -20px -20px;padding:12px 20px}}
 .translate-button{margin:12px 0 4px;padding:9px 16px}.translate-note{margin:4px 0 0;font-size:12px}.admin-dialog .is-translated{background:#f4f8ef;border-color:#a9c39a}
 .pe-combo{display:grid;gap:8px}.pe-combo .pe-combo-input[hidden]{display:none}
+
+/* 768–1000px：頂端選單多了「查詢訂單」，縮小間距讓它維持一行 */
+@media(min-width:768px) and (max-width:1000px){.shop-nav{gap:16px}.shop-nav nav{gap:16px}html[data-lang=en] .shop-nav nav{gap:10px;font-size:11px}}
