@@ -16,7 +16,8 @@ export function logisticsConfig(env) {
     ? { merchantId: env.ECPAY_LOGISTICS_MERCHANT_ID || env.ECPAY_MERCHANT_ID, hashKey: env.ECPAY_LOGISTICS_HASH_KEY || env.ECPAY_HASH_KEY, hashIV: env.ECPAY_LOGISTICS_HASH_IV || env.ECPAY_HASH_IV, senderName: env.LOGISTICS_SENDER_NAME, senderPhone: env.LOGISTICS_SENDER_PHONE }
     : { ...STAGE, ...(env.LOGISTICS_SENDER_NAME ? { senderName: env.LOGISTICS_SENDER_NAME } : {}), ...(env.LOGISTICS_SENDER_PHONE ? { senderPhone: env.LOGISTICS_SENDER_PHONE } : {}) };
   if (!c.merchantId || !c.hashKey || !c.hashIV) throw Object.assign(new Error('物流尚未設定完成'), { status: 503 });
-  return { mode, base: BASE[mode], ...c };
+  // 貼上 secrets 時常多帶空白或換行：寄件人姓名去掉所有空白，手機只留數字
+  return { mode, base: BASE[mode], ...c, senderName: String(c.senderName ?? '').replace(/\s+/g, ''), senderPhone: String(c.senderPhone ?? '').replace(/[\s-]/g, '') };
 }
 
 const dotnetEncode = s => encodeURIComponent(s).replace(/%20/g, '+').replace(/~/g, '%7e').replace(/'/g, '%27');
@@ -49,6 +50,9 @@ export async function createShipment(order, receiver, cfg, replyURL, now = new D
   const subType = SUB_TYPES[order.delivery];
   if (!subType || !order.store?.id) return { ok: false, message: '這筆訂單不是 7-ELEVEN／全家取貨，或沒有取貨門市' };
   if (!cfg.senderName || !cfg.senderPhone) return { ok: false, message: '尚未設定寄件人：請在 Supabase secrets 新增 LOGISTICS_SENDER_NAME（你的真實姓名）與 LOGISTICS_SENDER_PHONE（09 開頭手機）' };
+  // 寄件人格式與收件人相同；先檢查，避免送到綠界才收到難懂的錯誤
+  if (pickupNameProblem(cfg.senderName)) return { ok: false, message: 'Supabase secret LOGISTICS_SENDER_NAME 的寄件人姓名不符合規定：須為身分證上的姓名，2～5 個中文字或 4～10 個英文字母，不能有數字、符號或「先生」「小姐」等稱呼' };
+  if (pickupPhoneProblem(cfg.senderPhone)) return { ok: false, message: 'Supabase secret LOGISTICS_SENDER_PHONE 的寄件人手機不符合規定：須為 09 開頭的 10 碼數字，不能有空格或「-」' };
   const fields = {
     MerchantID: cfg.merchantId,
     MerchantTradeNo: order.id,

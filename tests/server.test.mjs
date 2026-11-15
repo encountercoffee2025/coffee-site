@@ -736,4 +736,23 @@ await check('logistics notices: signed only; sent → shipped (from packing), pi
   assert.equal(await logisticsNotify({ ...base, AllPayLogisticsID: '999', RtnCode: '2073', RtnMsg: '商品配達買家取貨門市' }), '1|OK', 'unknown shipment is acknowledged but ignored');
 });
 
+
+await check('shipment: sender secrets are trimmed, and a malformed sender is explained before calling ECPay', async () => {
+  // 正式模式：物流用另一組金鑰（ECPAY_LOGISTICS_HASH_*），也順便測這個覆寫設定
+  const PROD3 = { ...ENV, ECPAY_MODE: 'prod', ECPAY_MERCHANT_ID: STAGE.merchantId, ECPAY_HASH_KEY: STAGE.hashKey, ECPAY_HASH_IV: STAGE.hashIV, ECPAY_LOGISTICS_HASH_KEY: LSTAGE.hashKey, ECPAY_LOGISTICS_HASH_IV: LSTAGE.hashIV };
+  reset();
+  let p = await paidPickup('711', PROD3);
+  const pasted = { ...PROD3, LOGISTICS_SENDER_NAME: ' 王 小明\n', LOGISTICS_SENDER_PHONE: '0912-345 678\n' };
+  const ok = await shipReq({ action: 'create-shipment', id: p.orderId }, ADMIN, pasted);
+  assert.equal(ok.status, 200, JSON.stringify(await ok.clone().json()));
+  assert.equal(logisticsCalls()[0].body.SenderName, '王小明'); assert.equal(logisticsCalls()[0].body.SenderCellPhone, '0912345678');
+  for (const [env, re] of [[{ LOGISTICS_SENDER_NAME: '王先生', LOGISTICS_SENDER_PHONE: '0912345678' }, /LOGISTICS_SENDER_NAME/], [{ LOGISTICS_SENDER_NAME: '王小明2', LOGISTICS_SENDER_PHONE: '0912345678' }, /LOGISTICS_SENDER_NAME/], [{ LOGISTICS_SENDER_NAME: '王小明', LOGISTICS_SENDER_PHONE: '02 1234 5678' }, /LOGISTICS_SENDER_PHONE/]]) {
+    reset();
+    p = await paidPickup('711', PROD3);
+    const res = await shipReq({ action: 'create-shipment', id: p.orderId }, ADMIN, { ...PROD3, ...env });
+    assert.equal(res.status, 502); assert.match((await res.json()).error, re);
+    assert.equal(logisticsCalls().length, 0, 'ECPay is not called with a bad sender');
+  }
+});
+
 console.log(`${results.length} server checks passed`);
