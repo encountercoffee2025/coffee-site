@@ -563,5 +563,30 @@
     if (!res.ok) throw new Error(json.error || '退款失敗，請稍後再試');
     return json;
   }
-  window.CoffeeCloud = { ...shared, client: sb, renderContent, cancelSubscription, refundOrder };
+  // 管理員呼叫 checkout 函式（伺服器會確認管理員與兩步驟驗證）
+  async function adminCall(payload, fallback) {
+    await pushing;
+    const { data } = await sb.auth.getSession();
+    const res = await fetch(CLOUD_URL + '/functions/v1/checkout', { method: 'POST', headers: { apikey: CLOUD_KEY, Authorization: 'Bearer ' + (data.session?.access_token || ''), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || fallback);
+    return json;
+  }
+  // 建立 7-ELEVEN／全家寄件單：成功後重新載入，訂單會出現寄件代碼
+  async function createShipment(id, receiver) {
+    try { return await adminCall({ action: 'create-shipment', id, name: receiver.name, phone: receiver.phone }, '建立寄件單失敗，請稍後再試') }
+    finally { try { await pull(); window.dispatchEvent(new CustomEvent('coffee:cloud')) } catch (_) {} }
+  }
+  // 列印託運單：先開新分頁（避免被擋），再把簽好章的表單送到綠界。不能用 iframe。
+  async function printShipment(id, mode) {
+    const name = 'ecpay-print-' + Date.now(), win = window.open('about:blank', name);
+    try {
+      const { print } = await adminCall({ action: 'print-shipment', id, mode }, '無法取得託運單，請稍後再試');
+      const form = document.createElement('form');
+      form.method = 'POST'; form.action = print.action; form.target = win ? name : '_blank'; form.hidden = true;
+      Object.entries(print.fields).forEach(([k, v]) => { const input = document.createElement('input'); input.type = 'hidden'; input.name = k; input.value = v; form.append(input) });
+      document.body.append(form); form.submit(); form.remove();
+    } catch (err) { win?.close(); throw err }
+  }
+  window.CoffeeCloud = { ...shared, client: sb, renderContent, cancelSubscription, refundOrder, createShipment, printShipment };
 })();

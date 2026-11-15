@@ -1,5 +1,6 @@
 // 伺服器下單：使用與網站相同的 store.js 規則計算價格、運費、庫存與訂單內容，不相信瀏覽器送來的金額。
 import { loadStore } from './store.js';
+import { pickupNameProblem, pickupPhoneProblem } from './logistics.js';
 
 // store.js 在瀏覽器使用 window 與 localStorage；伺服器給它一份專用的記憶體版本，不動到全域環境。
 const memory = new Map();
@@ -46,6 +47,7 @@ export function placeOrder(catalog, input, id) {
   }
   const c = input.customer || {};
   const store = pickedStore(input);
+  if (store) { const problem = pickupNameProblem(c.name) || pickupPhoneProblem(c.phone); if (problem) throw new Error(problem) }
   const order = S.createOrder(
     { name: String(c.name ?? '').trim(), email: String(c.email ?? '').trim(), phone: String(c.phone ?? '').trim(), address: store ? `${store.name}（店號 ${store.id}）${store.address}` : String(c.address ?? '').trim() },
     { delivery: String(input.delivery || ''), note: String(input.note || ''), id, notes: '', historyText: '建立訂單並保留庫存，等待付款' }

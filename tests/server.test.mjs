@@ -9,6 +9,7 @@ import { createRequire } from 'node:module';
 const base = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { handleCheckout, handleEcpay, refundOrder } = await import('../supabase/functions/_shared/handlers.js');
 const { db } = await import('../supabase/functions/_shared/db.js');
+const { logisticsMac } = await import('../supabase/functions/_shared/logistics.js');
 const { ecpayConfig, inCloseWindow } = await import('../supabase/functions/_shared/ecpay.js');
 const { checkMacValue, verifyMac } = await import('../supabase/functions/_shared/ecpay.js');
 
@@ -22,13 +23,21 @@ const seed = seedContext.window.COFFEE_SEED;
 const catalog = () => JSON.parse(JSON.stringify({ version: 3, products: seed.products, treats: seed.treats, batches: seed.batches, ledger: seed.ledger, settings: seed.settings }));
 
 const STAGE = { merchantId: '3002607', hashKey: 'pwFHCqoQZGmho4w6', hashIV: 'EkRm7iFT261dpevs' };
-let tables, sent, failNextCatalogWrite, doAction = {};
+let tables, sent, failNextCatalogWrite, doAction = {}, logisticsFail = '';
 function reset() { tables = { site_state: [{ id: 'main', data: catalog(), version: 1 }], site_private: [], orders: [], subscriptions: [], admins: [{ user_id: '11111111-2222-3333-4444-555555555555' }] }; sent = []; failNextCatalogWrite = false; }
 
 // 假的 Supabase REST 與外部服務
 globalThis.fetch = async (url, init = {}) => {
   const u = new URL(url), method = init.method || 'GET';
   if (u.hostname === 'api.line.me' || u.hostname === 'api.resend.com') { sent.push({ host: u.hostname, body: JSON.parse(init.body) }); return new Response('{}', { status: 200 }); }
+  if (u.hostname === 'logistics-stage.ecpay.com.tw' || u.hostname === 'logistics.ecpay.com.tw') {
+    const body = Object.fromEntries(new URLSearchParams(init.body)); sent.push({ host: 'ecpay-logistics', path: u.pathname, body });
+    if (logisticsFail) return new Response(logisticsFail, { status: 200 });
+    const seven = body.LogisticsSubType === 'UNIMARTC2C';
+    const r = { AllPayLogisticsID: seven ? '3805223' : '3805224', BookingNote: '', CVSPaymentNo: seven ? 'D8858302' : '16000587908', CVSValidationNo: seven ? '6015' : '', GoodsAmount: body.GoodsAmount, LogisticsSubType: body.LogisticsSubType, LogisticsType: 'CVS', MerchantID: body.MerchantID, MerchantTradeNo: body.MerchantTradeNo, ReceiverAddress: '', ReceiverCellPhone: body.ReceiverCellPhone, ReceiverEmail: '', ReceiverName: body.ReceiverName, ReceiverPhone: '', RtnCode: '300', RtnMsg: '訂單處理中(綠界已收到訂單資料)', UpdateStatusDate: '2026/11/15 19:00:00' };
+    r.CheckMacValue = logisticsMac(r, 'XBERn1YOvpM9nfZc', 'h1ONHk4P4yqbl5LK');
+    return new Response('1|' + new URLSearchParams(r).toString(), { status: 200 });
+  }
   if (u.pathname === '/CreditDetail/DoAction') { const body = Object.fromEntries(new URLSearchParams(init.body)); sent.push({ host: 'ecpay-doaction', body }); const ok = doAction[body.Action] === true; return new Response(`MerchantID=${body.MerchantID}&MerchantTradeNo=${body.MerchantTradeNo}&TradeNo=${body.TradeNo}&RtnCode=${ok ? 1 : 0}&RtnMsg=${ok ? '成功' : encodeURIComponent('狀態不符')}`, { status: 200 }); }
   if (u.pathname === '/Cashier/CreditCardPeriodAction') { sent.push({ host: 'ecpay-cancel', body: Object.fromEntries(new URLSearchParams(init.body)) }); return new Response('MerchantID=3002607&RtnCode=1&RtnMsg=成功', { status: 200 }); }
   if (u.pathname === '/auth/v1/user') { const ok = [ADMIN, ADMIN_AAL1].includes(init.headers?.Authorization); return new Response(JSON.stringify(ok ? { id: '11111111-2222-3333-4444-555555555555' } : { msg: 'invalid' }), { status: ok ? 200 : 401 }); }
@@ -59,7 +68,7 @@ const ADMIN = jwt({ aal: 'aal2' }), ADMIN_AAL1 = jwt({ aal: 'aal1' });
 const ENV = { SUPABASE_URL: 'https://demo.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'service', SITE_URL: 'https://encountercoffee2025.com' };
 const NOTIFY_ENV = { ...ENV, LINE_CHANNEL_ACCESS_TOKEN: 'line-token', LINE_OWNER_USER_ID: 'Uowner', RESEND_API_KEY: 'resend' };
 const MAIL_ENV = { ...NOTIFY_ENV, OWNER_EMAIL: 'owner@example.com' };
-const customer = { name: '林小姐', email: 'buyer@example.com', phone: '0912345678', address: '7-ELEVEN 深坑門市' };
+const customer = { name: '林小美', email: 'buyer@example.com', phone: '0912345678', address: '7-ELEVEN 深坑門市' };
 const cart = [{ productId: 'guji', sku: 'guji-200', quantity: 2, roast: 'medium', grind: 'pour' }, { kind: 'treat', treatId: 'financier', quantity: 1 }];
 const STORE = { id: '131386', name: '深坑門市', address: '新北市深坑區北深路三段 1 號', type: 'UNIMARTC2C' };
 // 7-ELEVEN 取貨的測試訂單預設帶入地圖選好的門市（測試「沒選門市」時明確傳 store: null）
@@ -211,7 +220,7 @@ await check('confirmation email copies the shop and replies go to the shop', asy
   assert.deepEqual(mail.bcc, ['owner@example.com']);
   assert.equal(mail.reply_to, 'owner@example.com');
   assert.match(mail.subject, new RegExp(orderId));
-  assert.ok(mail.html.includes('林小姐'));
+  assert.ok(mail.html.includes('林小美'));
 });
 
 await check('ECPay notice with wrong signature or wrong amount does not mark paid', async () => {
@@ -611,6 +620,120 @@ await check('refund: a cancelled order awaiting refund is refunded without resto
   assert.equal((await refundReq(s.orderId, ADMIN, ENV)).status, 200);
   assert.equal(doActions(), ''); assert.ok(tables.orders[0].data.history.some(h => h.text.includes('測試環境')));
   assert.equal(tables.orders[0].data.payment, 'refunded');
+});
+
+// ===== 7-ELEVEN／全家寄件單 =====
+const LSTAGE = { hashKey: 'XBERn1YOvpM9nfZc', hashIV: 'h1ONHk4P4yqbl5LK' };
+const shipReq = (body, auth = ADMIN, env = ENV) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://encountercoffee2025.com', ...(auth ? { authorization: auth } : {}) }, body: JSON.stringify(body) }), env);
+const FAMILY = { id: '006598', name: '全家深坑店', address: '新北市深坑區深坑街 1 號', type: 'FAMIC2C' };
+async function paidPickup(delivery = '711', env = ENV) {
+  const body = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery, ...(delivery === 'family' ? { store: FAMILY } : {}) }, env)).json();
+  assert.ok(body.orderId, JSON.stringify(body));
+  await ecpay(paidNotice(body.orderId, body.total), 'notify', env);
+  return body;
+}
+const logisticsCalls = () => sent.filter(s => s.host === 'ecpay-logistics');
+const logisticsNotify = async (fields, sign = true) => {
+  const params = { ...fields };
+  if (sign) params.CheckMacValue = logisticsMac(params, LSTAGE.hashKey, LSTAGE.hashIV);
+  return (await handleEcpay(new Request('https://demo.supabase.co/functions/v1/ecpay?type=logistics', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(params).toString() }), ENV)).text();
+};
+
+await check('checkout: store pickup needs a real name (2-5 Chinese or 4-10 letters) and a 09 mobile; home delivery does not', async () => {
+  reset();
+  const try711 = c => post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer: { ...customer, ...c }, delivery: '711' });
+  assert.match((await (await try711({ name: '林小姐' })).json()).error, /真實姓名/);
+  assert.match((await (await try711({ name: '林' })).json()).error, /2～5 個中文字/);
+  assert.match((await (await try711({ name: 'Amy Lin' })).json()).error, /空格/);
+  assert.match((await (await try711({ phone: '02-12345678' })).json()).error, /09 開頭/);
+  assert.equal((await try711({ name: 'AmyLin' })).status, 200);
+  assert.equal((await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer: { ...customer, name: '林小姐', address: '台北市信義路 1 號' }, delivery: 'home' })).status, 200);
+});
+
+await check('shipment: admin-only; refuses unpaid and home-delivery orders without calling ECPay', async () => {
+  reset();
+  const { orderId } = await paidPickup();
+  assert.equal((await shipReq({ action: 'create-shipment', id: orderId }, null)).status, 401);
+  assert.equal((await shipReq({ action: 'create-shipment', id: orderId }, ADMIN_AAL1)).status, 401);
+  const unpaid = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' })).json();
+  assert.match((await (await shipReq({ action: 'create-shipment', id: unpaid.orderId })).json()).error, /尚未收款/);
+  const home = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer: { ...customer, address: '台北市信義路 1 號' }, delivery: 'home' })).json();
+  await ecpay(paidNotice(home.orderId, home.total));
+  assert.match((await (await shipReq({ action: 'create-shipment', id: home.orderId })).json()).error, /7-ELEVEN／全家/);
+  assert.equal(logisticsCalls().length, 0);
+});
+
+await check('shipment: 7-ELEVEN order gets a signed C2C request, code saved as tracking number, second click reuses it', async () => {
+  reset();
+  const { orderId, total } = await paidPickup('711');
+  const res = await shipReq({ action: 'create-shipment', id: orderId, name: customer.name, phone: customer.phone });
+  assert.equal(res.status, 200, JSON.stringify(await res.clone().json()));
+  const [call] = logisticsCalls();
+  assert.equal(call.path, '/Express/Create');
+  assert.equal(call.body.LogisticsSubType, 'UNIMARTC2C'); assert.equal(call.body.ReceiverStoreID, STORE.id); assert.equal(call.body.MerchantTradeNo, orderId);
+  assert.equal(call.body.GoodsAmount, String(total)); assert.equal(call.body.IsCollection, 'N'); assert.equal(call.body.ReceiverName, customer.name);
+  assert.equal(call.body.SenderName, '王小明', 'stage uses the test sender when none is set');
+  assert.ok(call.body.ServerReplyURL.endsWith('/functions/v1/ecpay?type=logistics'));
+  assert.equal(call.body.CheckMacValue, logisticsMac(call.body, LSTAGE.hashKey, LSTAGE.hashIV), 'MD5 logistics signature');
+  const o = tables.orders[0].data;
+  assert.equal(o.shipment.paymentNo, 'D8858302'); assert.equal(o.shipment.validationNo, '6015');
+  assert.equal(o.tracking, 'D88583026015');
+  assert.ok(o.history.some(h => h.text.includes('寄件代碼 D88583026015')));
+  assert.equal((await shipReq({ action: 'create-shipment', id: orderId })).status, 200);
+  assert.equal(logisticsCalls().length, 1, 'no duplicate shipment');
+});
+
+await check('shipment: FamilyMart, corrected receiver, ECPay errors and production without a sender', async () => {
+  reset();
+  const fam = await paidPickup('family');
+  assert.match((await (await shipReq({ action: 'create-shipment', id: fam.orderId, name: '陳先生', phone: '0912345678' })).json()).error, /真實姓名/);
+  assert.equal(logisticsCalls().length, 0);
+  assert.equal((await shipReq({ action: 'create-shipment', id: fam.orderId, name: '陳大文', phone: '0987654321' })).status, 200);
+  const o = tables.orders.find(r => r.id === fam.orderId).data;
+  assert.equal(logisticsCalls()[0].body.LogisticsSubType, 'FAMIC2C'); assert.equal(o.shipment.paymentNo, '16000587908'); assert.equal(o.shipment.validationNo, '');
+  assert.ok(o.history.some(h => h.text.includes('寄件收件人：陳大文・0987654321')));
+  reset(); logisticsFail = '0|門市已關轉';
+  const bad = await paidPickup('711');
+  const res = await shipReq({ action: 'create-shipment', id: bad.orderId });
+  assert.equal(res.status, 502); assert.match((await res.json()).error, /門市已關轉/);
+  assert.equal(tables.orders[0].data.shipment, undefined);
+  logisticsFail = '';
+  reset();
+  const PRODENV2 = { ...ENV, ECPAY_MODE: 'prod', ECPAY_MERCHANT_ID: STAGE.merchantId, ECPAY_HASH_KEY: STAGE.hashKey, ECPAY_HASH_IV: STAGE.hashIV };
+  const p = await paidPickup('711', PRODENV2);
+  assert.match((await (await shipReq({ action: 'create-shipment', id: p.orderId }, ADMIN, PRODENV2)).json()).error, /LOGISTICS_SENDER_NAME/);
+  assert.equal(logisticsCalls().length, 0);
+});
+
+await check('shipment: print form is signed; 7-ELEVEN supports A6 labels', async () => {
+  reset();
+  const { orderId } = await paidPickup('711');
+  assert.equal((await (await shipReq({ action: 'print-shipment', id: orderId })).json()).error, '這筆訂單還沒有寄件單');
+  await shipReq({ action: 'create-shipment', id: orderId });
+  const { print } = await (await shipReq({ action: 'print-shipment', id: orderId, mode: '2' })).json();
+  assert.equal(print.action, 'https://logistics-stage.ecpay.com.tw/Express/PrintUniMartC2COrderInfo');
+  assert.equal(print.fields.PrintMode, '2'); assert.equal(print.fields.CVSValidationNo, '6015');
+  assert.equal(print.fields.CheckMacValue, logisticsMac(print.fields, LSTAGE.hashKey, LSTAGE.hashIV));
+  assert.equal((await shipReq({ action: 'print-shipment', id: orderId }, null)).status, 401);
+});
+
+await check('logistics notices: signed only; sent → shipped (from packing), picked up → completed, duplicates ignored', async () => {
+  reset();
+  const { orderId } = await paidPickup('711');
+  await shipReq({ action: 'create-shipment', id: orderId });
+  const row = tables.orders[0];
+  row.data.status = 'packing'; row.status = 'packing';
+  const base = { MerchantID: '2000933', MerchantTradeNo: orderId, AllPayLogisticsID: '3805223', LogisticsType: 'CVS', LogisticsSubType: 'UNIMARTC2C', GoodsAmount: '450', CVSPaymentNo: 'D8858302', CVSValidationNo: '6015' };
+  assert.equal(await logisticsNotify({ ...base, RtnCode: '2030', RtnMsg: '物流中心驗收成功', CheckMacValue: 'BAD' }, false), '0|CheckMacValue Error');
+  assert.equal(row.data.status, 'packing');
+  assert.equal(await logisticsNotify({ ...base, RtnCode: '2030', RtnMsg: '物流中心驗收成功', UpdateStatusDate: '2026/11/16 10:00:00' }), '1|OK');
+  assert.equal(row.data.status, 'shipped'); assert.equal(row.data.shipment.code, '2030');
+  const n = row.data.history.length;
+  assert.equal(await logisticsNotify({ ...base, RtnCode: '2030', RtnMsg: '物流中心驗收成功', UpdateStatusDate: '2026/11/16 10:00:00' }), '1|OK');
+  assert.equal(row.data.history.length, n, 'duplicate notice ignored');
+  assert.equal(await logisticsNotify({ ...base, RtnCode: '2067', RtnMsg: '消費者成功取件', UpdateStatusDate: '2026/11/18 15:00:00' }), '1|OK');
+  assert.equal(row.data.status, 'completed');
+  assert.equal(await logisticsNotify({ ...base, AllPayLogisticsID: '999', RtnCode: '2073', RtnMsg: '商品配達買家取貨門市' }), '1|OK', 'unknown shipment is acknowledged but ignored');
 });
 
 console.log(`${results.length} server checks passed`);

@@ -1,6 +1,7 @@
 // 月費訂購：建立訂閱資料、每期扣款成功後產生該期出貨訂單。方案價格以網站方案加上後台「頁面內容 → 月費方案」的修改為準。
 import { PLANS } from './plans.js';
 import { pickedStore } from './core.js';
+import { pickupNameProblem, pickupPhoneProblem } from './logistics.js';
 
 export const ROAST_PREFS = { any: '交給烘豆師', 'light-medium': '淺中焙', medium: '中焙', 'medium-dark': '中深焙' };
 export const GRINDS = { whole: '原豆（不研磨）', pour: '手沖研磨', espresso: '義式研磨' };
@@ -36,6 +37,7 @@ export function newSubscription(input, content, id, now = new Date()) {
   const c = input.customer || {};
   const customer = { name: text(c.name, '姓名', 80), email: text(c.email, '電子信箱', 150), phone: text(c.phone, '手機', 30), address: store ? `${store.name}（店號 ${store.id}）${store.address}` : text(c.address, '配送地址', 300) };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) throw new Error('電子信箱格式不正確');
+  if (store) { const problem = pickupNameProblem(customer.name) || pickupPhoneProblem(customer.phone); if (problem) throw new Error(problem) }
   const at = now.toISOString();
   return {
     id, createdAt: at, planId: plan.id, name: plan.name, price: plan.price, cycle, roast, ...(grind ? { grind } : {}),

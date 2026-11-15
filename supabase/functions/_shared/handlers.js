@@ -4,6 +4,7 @@ import { ecpayConfig, mapConfig, paymentForm, periodicForm, cancelPeriod, verify
 import { newSubscription, periodOrder, publicSubscription, addMonths, taipeiDate } from './subscription.js';
 import { notifyOwner, notifyPaid } from './notify.js';
 import { db } from './db.js';
+import { logisticsConfig, createShipment, printForm, shipmentCode, verifyLogisticsMac, pickupNameProblem, pickupPhoneProblem, SUB_TYPES, SENT_CODES, PICKED_UP_CODES } from './logistics.js';
 
 const site = env => (env.SITE_URL || 'https://encountercoffee2025.com').replace(/\/$/, '');
 const ORIGINS = ['https://encountercoffee2025.com', 'https://www.encountercoffee2025.com', 'https://encountercoffee2025.github.io', 'http://localhost:4173', 'http://127.0.0.1:4173'];
@@ -59,6 +60,58 @@ export async function releaseExpired(D, now = new Date()) {
     if (await D.rpc('save_catalog', { expected: main.version, pub, priv: nextPriv })) break;
   }
   return cancelled.length;
+}
+
+// 建立寄件單：已收款、尚未出貨的超商取貨訂單。成功後記下寄件代碼並填入物流單號。
+export async function shipOrder(D, env, id, input = {}) {
+  const fail = (status, message) => Object.assign(new Error(message), { status });
+  if (!ID.test(id)) throw fail(404, '找不到這筆訂單');
+  const [row] = await D.get(`orders?id=eq.${id}&select=id,data,version`);
+  if (!row) throw fail(404, '找不到這筆訂單');
+  const o = row.data;
+  if (o.shipment) return o;
+  if (!SUB_TYPES[o.delivery]) throw fail(409, '只有 7-ELEVEN／全家取貨的訂單可以建立寄件單');
+  if (o.payment !== 'paid') throw fail(409, '訂單尚未收款，不能建立寄件單');
+  if (!['new', 'confirmed', 'packing'].includes(o.status)) throw fail(409, '已出貨、已完成或已取消的訂單不能建立寄件單');
+  // 姓名或手機不符合超商規定時，後台可以填入修正後的收件人資料
+  const receiver = { name: String(input.name ?? o.customer.name).trim(), phone: String(input.phone ?? o.customer.phone).trim() };
+  const problem = pickupNameProblem(receiver.name) || pickupPhoneProblem(receiver.phone);
+  if (problem) throw fail(400, problem);
+  const cfg = logisticsConfig(env);
+  const result = await createShipment(o, receiver, cfg, fnURL(env) + '?type=logistics');
+  if (!result.ok) throw fail(502, '綠界建立寄件單失敗：' + result.message);
+  const s = result.shipment, code = shipmentCode(s);
+  // 綠界已建單：寫回訂單（版本號不符就重讀再寫，不會重複建單）
+  for (let attempt = 0, cur = row; attempt < 4; attempt++) {
+    if (attempt) [cur] = await D.get(`orders?id=eq.${id}&select=id,data,version`);
+    const next = { ...cur.data, shipment: s, tracking: cur.data.tracking || code, history: [...cur.data.history, { at: s.createdAt, text: `建立${s.label}寄件單，寄件代碼 ${code}${cfg.mode === 'stage' ? '（測試環境）' : ''}` }] };
+    if (receiver.name !== cur.data.customer.name || receiver.phone !== cur.data.customer.phone) next.history.push({ at: s.createdAt, text: `寄件收件人：${receiver.name}・${receiver.phone}` });
+    const saved = await D.update(`orders?id=eq.${id}&version=eq.${cur.version}`, { data: next, version: cur.version + 1, updated_at: s.createdAt });
+    if (saved.length) return next;
+  }
+  throw fail(500, `綠界已建立寄件單（寄件代碼 ${code}），但訂單更新失敗，請把這組代碼記到訂單的物流單號`);
+}
+
+// 物流狀態通知：記錄狀態；送達物流中心時「備貨中」改為「已出貨」，顧客取貨後「已出貨」改為「已完成」
+async function logisticsNotice(D, env, params) {
+  const cfg = logisticsConfig(env);
+  if (!verifyLogisticsMac(params, cfg)) return '0|CheckMacValue Error';
+  const id = String(params.MerchantTradeNo || ''), code = String(params.RtnCode || '');
+  if (!ID.test(id)) return '1|OK';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const [row] = await D.get(`orders?id=eq.${id}&select=id,data,version`);
+    if (!row?.data?.shipment || row.data.shipment.id !== String(params.AllPayLogisticsID)) return '1|OK';
+    const o = structuredClone(row.data), at = new Date().toISOString(), s = o.shipment;
+    const text = `物流狀態：${params.RtnMsg || code}（${code}${params.UpdateStatusDate ? '，' + params.UpdateStatusDate : ''}）`;
+    if (o.history.some(h => h.text === text)) return '1|OK';
+    s.code = code; s.status = params.RtnMsg || code; s.updatedAt = at;
+    o.history.push({ at, text });
+    if (SENT_CODES.includes(code) && o.status === 'packing') { o.status = 'shipped'; o.history.push({ at, text: '包裹已送達物流中心，狀態自動改為已出貨' }) }
+    if (PICKED_UP_CODES.includes(code) && o.status === 'shipped') { o.status = 'completed'; o.history.push({ at, text: '顧客已取貨，狀態自動改為已完成' }) }
+    const saved = await D.update(`orders?id=eq.${id}&version=eq.${row.version}`, { data: o, status: o.status, version: row.version + 1, updated_at: at });
+    if (saved.length) return '1|OK';
+  }
+  return '0|Retry';
 }
 
 // 已付款訂單的全額退款。綠界退款不能復原，所以順序是：檢查 → 綠界退款 → 成功才改訂單 → 回補庫存。
@@ -205,6 +258,19 @@ export async function handleCheckout(req, env) {
       return reply(200, { order: await refundOrder(D, cfg, String(body.id || '')) });
     }
 
+    // 後台建立 7-ELEVEN／全家寄件單，與列印託運單
+    if (body.action === 'create-shipment') {
+      await requireAdmin(req, env, D);
+      return reply(200, { order: await shipOrder(D, env, String(body.id || ''), body) });
+    }
+    if (body.action === 'print-shipment') {
+      await requireAdmin(req, env, D);
+      if (!ID.test(String(body.id))) return reply(404, { error: '找不到這筆訂單' });
+      const [row] = await D.get(`orders?id=eq.${body.id}&select=data`);
+      if (!row?.data?.shipment) return reply(404, { error: '這筆訂單還沒有寄件單' });
+      return reply(200, { print: printForm(row.data.shipment, logisticsConfig(env), String(body.mode || '1')) });
+    }
+
     if (body.action === 'pay') {
       const row = await findOrder(D, body.id, body.token), o = row.data;
       if (o.payment !== 'unpaid' || o.status === 'cancelled') return reply(409, { error: o.payment === 'paid' ? '這筆訂單已完成付款' : '這筆訂單無法付款' });
@@ -255,6 +321,7 @@ export async function handleEcpay(req, env) {
     const query = ok ? '?' + new URLSearchParams({ store: id, storeName: String(params.CVSStoreName || '').trim().slice(0, 60), storeAddr: String(params.CVSAddress || '').trim().slice(0, 120), storeType: kind }) : '';
     return new Response(null, { status: 303, headers: { Location: `${site(env)}/${page}${query}` } });
   }
+  if (type === 'logistics') return text(await logisticsNotice(db(env), env, params));
   const cfg = ecpayConfig(env), D = db(env);
   const valid = await verifyMac(params, cfg), tradeNo = String(params.MerchantTradeNo || '');
   const lookup = async () => TRADE.test(tradeNo) ? (await D.get(`orders?trade_nos=cs.%7B${tradeNo}%7D&select=id,token,data,version`))[0] : undefined;
