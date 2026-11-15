@@ -755,4 +755,71 @@ await check('shipment: sender secrets are trimmed, and a malformed sender is exp
   }
 });
 
+
+// ===== 訂單進度：確認信連結、進度資料、出貨通知信 =====
+const mails = () => sent.filter(s => s.host === 'api.resend.com').map(s => s.body);
+
+await check('confirmation email links to the order progress page with its private token', async () => {
+  reset();
+  const { orderId, token, total } = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' }, MAIL_ENV)).json();
+  await ecpay(paidNotice(orderId, total), 'notify', MAIL_ENV);
+  const [mail] = mails();
+  assert.ok(mail.html.includes(`https://encountercoffee2025.com/checkout.html?order=${orderId}&amp;t=${token}`), 'link with order id and token');
+  assert.ok(mail.html.includes('查看訂單進度'));
+});
+
+await check('order status shows shipping code, store and arrival — but never the receiver details', async () => {
+  reset();
+  const { orderId, token } = await paidPickup('711');
+  let o = (await (await get(`?id=${orderId}&t=${token}`)).json()).order;
+  assert.equal(o.status, 'new'); assert.equal(o.shipment, null); assert.equal(o.tracking, ''); assert.equal(o.storeName, STORE.name);
+  await shipReq({ action: 'create-shipment', id: orderId });
+  const row = tables.orders[0]; row.data.status = 'packing'; row.status = 'packing';
+  const base = { MerchantID: '2000933', MerchantTradeNo: orderId, AllPayLogisticsID: '3805223', LogisticsType: 'CVS', LogisticsSubType: 'UNIMARTC2C', GoodsAmount: '450', CVSPaymentNo: 'D8858302', CVSValidationNo: '6015' };
+  await logisticsNotify({ ...base, RtnCode: '2030', RtnMsg: '物流中心驗收成功', UpdateStatusDate: '2026/11/16 10:00:00' });
+  await logisticsNotify({ ...base, RtnCode: '2073', RtnMsg: '商品配達買家取貨門市', UpdateStatusDate: '2026/11/17 09:00:00' });
+  o = (await (await get(`?id=${orderId}&t=${token}`)).json()).order;
+  assert.equal(o.status, 'shipped');
+  assert.deepEqual({ ...o.shipment, updatedAt: undefined }, { label: '7-ELEVEN 交貨便', code: 'D88583026015', status: '商品配達買家取貨門市', updatedAt: undefined, arrived: true, pickedUp: false });
+  const json = JSON.stringify(o);
+  assert.ok(!json.includes(customer.phone) && !json.includes(customer.email) && !json.includes(customer.name), 'no personal data in the public order');
+  assert.equal((await get(`?id=${orderId}&t=${'0'.repeat(32)}`)).status, 404, 'wrong token sees nothing');
+});
+
+await check('shipped email: sent once when the admin marks shipped, admin-only, with code and progress link', async () => {
+  reset();
+  const { orderId, token, total } = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer: { ...customer, address: '台北市信義路 1 號' }, delivery: 'home' }, MAIL_ENV)).json();
+  await ecpay(paidNotice(orderId, total), 'notify', MAIL_ENV);
+  const notify = (auth = ADMIN) => shipReq({ action: 'notify-shipped', id: orderId }, auth, MAIL_ENV);
+  assert.equal((await notify(null)).status, 401);
+  assert.deepEqual((await (await notify()).json()).results, [], 'not shipped yet → nothing sent');
+  const row = tables.orders[0]; row.data.status = 'shipped'; row.data.tracking = 'HCT123456'; row.status = 'shipped';
+  const before = mails().length;
+  assert.deepEqual((await (await notify()).json()).results, ['已寄出出貨通知信']);
+  const mail = mails().at(-1);
+  assert.equal(mails().length, before + 1);
+  assert.match(mail.subject, /出貨通知/); assert.ok(mail.html.includes('HCT123456')); assert.ok(mail.html.includes(`order=${orderId}&amp;t=${token}`));
+  assert.equal(mail.to[0], customer.email);
+  assert.ok(row.data.shippedMailAt); assert.ok(row.data.history.some(h => h.text === '已寄出出貨通知信'));
+  assert.deepEqual((await (await notify()).json()).results, [], 'second call does not resend');
+  assert.equal(mails().length, before + 1);
+});
+
+await check('shipped email: sent automatically once when ECPay reports the parcel reached the logistics center', async () => {
+  reset();
+  const body = await (await post({ action: 'create', cart: [{ productId: 'guji', sku: 'guji-200', quantity: 1 }], customer, delivery: '711' }, MAIL_ENV)).json();
+  await ecpay(paidNotice(body.orderId, body.total), 'notify', MAIL_ENV);
+  await shipReq({ action: 'create-shipment', id: body.orderId }, ADMIN, MAIL_ENV);
+  const row = tables.orders[0]; row.data.status = 'packing'; row.status = 'packing';
+  const before = mails().length;
+  const params = { MerchantID: '2000933', MerchantTradeNo: body.orderId, AllPayLogisticsID: '3805223', LogisticsType: 'CVS', LogisticsSubType: 'UNIMARTC2C', GoodsAmount: '450', CVSPaymentNo: 'D8858302', CVSValidationNo: '6015', RtnCode: '2030', RtnMsg: '物流中心驗收成功', UpdateStatusDate: '2026/11/16 10:00:00' };
+  params.CheckMacValue = logisticsMac(params, LSTAGE.hashKey, LSTAGE.hashIV);
+  const res = await handleEcpay(new Request('https://demo.supabase.co/functions/v1/ecpay?type=logistics', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(params).toString() }), MAIL_ENV);
+  assert.equal(await res.text(), '1|OK');
+  assert.equal(row.data.status, 'shipped');
+  assert.equal(mails().length, before + 1);
+  assert.ok(mails().at(-1).html.includes('D88583026015'));
+  assert.ok(mails().at(-1).html.includes('證件'));
+});
+
 console.log(`${results.length} server checks passed`);

@@ -18,7 +18,11 @@ export function ownerMessage(o, paymentLabel) {
   ].join('\n').slice(0, 4900);
 }
 
-export function customerEmail(o, site) {
+// 訂單進度頁（帶查詢碼，只有收到信的人看得到）
+export const orderLink = (site, id, token) => `${String(site).replace(/\/$/, '')}/checkout.html?order=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`;
+const button = (href, label) => `<p style="margin:24px 0"><a href="${escapeHTML(href)}" style="display:inline-block;background:#292d29;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px">${label}</a></p>`;
+
+export function customerEmail(o, site, link) {
   const rows = o.items.map(i => `<tr><td style="padding:8px 0;border-bottom:1px solid #eee">${escapeHTML(lineSpec(i))}</td><td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">× ${i.quantity}</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">${money(i.price * i.quantity)}</td></tr>`).join('');
   const html = `<div style="font-family:'Noto Sans TC',Arial,sans-serif;color:#292d29;max-width:560px;margin:auto;line-height:1.7">
 <h1 style="font-size:22px;font-weight:600">謝謝你的訂購，${escapeHTML(o.customer.name)}。</h1>
@@ -30,6 +34,7 @@ ${o.frozenShipping ? `<tr><td style="padding:8px 0">冷凍運費</td><td></td><t
 <tr><td style="padding:8px 0;font-weight:600">合計</td><td></td><td style="text-align:right;font-weight:600">${money(o.total)}</td></tr></table>
 <p>收件資訊：${escapeHTML(o.customer.name)}・${escapeHTML(o.customer.phone)}<br>${escapeHTML(deliveryLabel(o.delivery))}：${escapeHTML(o.customer.address)}</p>
 ${o.customerNote ? `<p>備註：${escapeHTML(o.customerNote)}</p>` : ''}
+${link ? button(link, '查看訂單進度') + '<p style="color:#6b6458;font-size:13px">出貨時會再寄信通知你；隨時可以點上面的按鈕查看進度。</p>' : ''}
 <p><a href="${escapeHTML(site)}" style="color:#8a5a2b">一遇 Encounter Coffee</a></p></div>`;
   return { subject: `一遇 Encounter Coffee 訂單確認 ${o.id}`, html };
 }
@@ -46,7 +51,7 @@ export async function notifyOwner(text, env) {
   } catch (err) { return ['LINE 通知失敗：' + err.message] }
 }
 
-export async function notifyPaid(o, paymentLabel, env) {
+export async function notifyPaid(o, paymentLabel, env, token) {
   const results = [];
   if (env.LINE_CHANNEL_ACCESS_TOKEN && env.LINE_OWNER_USER_ID) {
     try {
@@ -60,7 +65,7 @@ export async function notifyPaid(o, paymentLabel, env) {
   }
   if (env.RESEND_API_KEY) {
     try {
-      const { subject, html } = customerEmail(o, env.SITE_URL || 'https://encountercoffee2025.com');
+      const site = env.SITE_URL || 'https://encountercoffee2025.com', { subject, html } = customerEmail(o, site, token ? orderLink(site, o.id, token) : '');
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
@@ -70,4 +75,31 @@ export async function notifyPaid(o, paymentLabel, env) {
     } catch (err) { results.push('確認信寄送失敗：' + err.message) }
   }
   return results;
+}
+
+// 出貨通知信：寄件代碼／物流單號與進度連結
+export function shippedEmail(o, site, link) {
+  const s = o.shipment, pickup = Boolean(s || o.store);
+  const code = s ? s.paymentNo + (s.validationNo || '') : o.tracking;
+  const html = `<div style="font-family:'Noto Sans TC',Arial,sans-serif;color:#292d29;max-width:560px;margin:auto;line-height:1.7">
+<h1 style="font-size:22px;font-weight:600">${escapeHTML(o.customer.name)}，你的咖啡出發了。</h1>
+<p>訂單 <strong>${escapeHTML(o.id)}</strong> 已經寄出（${escapeHTML(deliveryLabel(o.delivery))}）。</p>
+${code ? `<p>${s ? '寄件代碼' : '物流單號'}：<strong>${escapeHTML(code)}</strong></p>` : ''}
+${pickup ? `<p>取貨門市：${escapeHTML(o.customer.address)}<br>包裹送達門市後，請攜帶與收件人姓名相同的證件取貨。</p>` : ''}
+${link ? button(link, '查看配送進度') : ''}
+<p><a href="${escapeHTML(site)}" style="color:#8a5a2b">一遇 Encounter Coffee</a></p></div>`;
+  return { subject: `一遇 Encounter Coffee 出貨通知 ${o.id}`, html };
+}
+
+export async function notifyShipped(o, env, token) {
+  if (!env.RESEND_API_KEY || !o.customer?.email) return [];
+  try {
+    const site = env.SITE_URL || 'https://encountercoffee2025.com', { subject, html } = shippedEmail(o, site, token ? orderLink(site, o.id, token) : '');
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: env.MAIL_FROM || '一遇 Encounter Coffee <order@encountercoffee2025.com>', to: [o.customer.email], ...(env.REPLY_TO || env.OWNER_EMAIL ? { reply_to: env.REPLY_TO || env.OWNER_EMAIL } : {}), subject, html })
+    });
+    return [res.ok ? '已寄出出貨通知信' : `出貨通知信寄送失敗（${res.status}）`];
+  } catch (err) { return ['出貨通知信寄送失敗：' + err.message] }
 }

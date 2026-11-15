@@ -97,4 +97,4 @@ export function printForm(shipment, cfg, mode = '1') {
 }
 
 // 物流狀態代碼：送達物流中心＝已寄出；顧客取貨成功＝完成
-export const SENT_CODES = ['2030', '3024'], PICKED_UP_CODES = ['2067', '3022'];
+export const SENT_CODES = ['2030', '3024'], ARRIVED_CODES = ['2073', '3018'], PICKED_UP_CODES = ['2067', '3022'];

@@ -71,6 +71,19 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .order-status-items{list-style:none;padding:0;margin:18px auto;max-width:520px;text-align:left}
 .order-status-items li{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.08)}
 .order-status-items .summary-total{font-weight:600;border-bottom:0}
+/* 訂單進度：已付款 → 備貨中 → 已出貨 →（已到店）→ 已取貨／已送達 */
+.order-progress{display:flex;list-style:none;padding:0;margin:22px auto 6px;max-width:560px;counter-reset:step}
+.order-progress li{flex:1;position:relative;text-align:center;font-size:13px;color:rgb(var(--muted));padding-top:30px}
+.order-progress li::before{counter-increment:step;content:counter(step);position:absolute;top:0;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;border:1px solid rgb(var(--line));background:rgb(var(--card));font-size:12px;line-height:20px;z-index:1}
+.order-progress li+li::after{content:'';position:absolute;top:11px;right:50%;width:100%;height:1px;background:rgb(var(--line))}
+.order-progress li.done,.order-progress li.current{color:rgb(var(--ink))}
+.order-progress li.done::before{content:'✓';background:rgb(var(--primary));border-color:rgb(var(--primary));color:rgb(var(--on-primary))}
+.order-progress li.current::before{border:2px solid rgb(var(--primary));line-height:18px;font-weight:600}
+.order-progress li.done+li::after,.order-progress li.current::after{background:rgb(var(--primary))}
+.order-progress li.current span{font-weight:600}
+.order-status .order-tracking{margin:14px auto 0;max-width:520px;color:rgb(var(--muted));font-size:14px}
+.order-tracking strong{color:rgb(var(--ink));letter-spacing:.04em}
+@media (max-width:420px){.order-progress li{font-size:11px}}
 .pay-mode-note{background:#fff4dc;border:1px solid #e8cf98;color:#6b4d12;padding:8px 12px}
 .store-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:-4px 0 14px}
 .store-pick .secondary-button{padding:9px 16px;cursor:pointer}

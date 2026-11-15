@@ -283,9 +283,11 @@
       if (!data.length) throw new Stale(`訂單 ${id} 沒有刪除成功（可能剛被更新，或 Supabase 尚未執行 07-delete-orders.sql），已重新載入`);
       orderVersions.delete(id); syncedOrders.delete(id);
     }
+    const shipped = [];
     for (const o of S.state().orders) {
       const json = JSON.stringify(o);
       if (!orderVersions.has(o.id) || syncedOrders.get(o.id) === json) continue;
+      if (o.status === 'shipped' && JSON.parse(syncedOrders.get(o.id) || '{}').status !== 'shipped') shipped.push(o.id);
       setStatus('同步中…', 'busy');
       const v = orderVersions.get(o.id);
       const { data, error } = await sb.from('orders').update({ data: o, status: o.status, payment: o.payment, version: v + 1, updated_at: now }).eq('id', o.id).eq('version', v).select('version');
@@ -301,6 +303,14 @@
       if (error) throw new Error(error.message);
       if (data == null) throw new Stale('商品資料剛被更新（例如有新訂單扣了庫存），已載入最新資料，請再做一次剛才的修改');
       catalogVersion = data; synced = json;
+    }
+    // 剛改成「已出貨」的訂單：請伺服器寄出貨通知信（只寄一次），再重新載入寄送紀錄
+    if (shipped.length) {
+      for (const id of shipped) {
+        try { const { results } = await callServer({ action: 'notify-shipped', id }, '出貨通知信寄送失敗'); if (results?.length) toast(results.join('、')) }
+        catch (err) { toast(err.message) }
+      }
+      await pull(); window.dispatchEvent(new CustomEvent('coffee:cloud'));
     }
     setStatus('已同步雲端', 'ok');
   }
@@ -566,6 +576,10 @@
   // 管理員呼叫 checkout 函式（伺服器會確認管理員與兩步驟驗證）
   async function adminCall(payload, fallback) {
     await pushing;
+    return callServer(payload, fallback);
+  }
+  // 不等同步佇列（同步過程中自己呼叫時用，避免等待自己）
+  async function callServer(payload, fallback) {
     const { data } = await sb.auth.getSession();
     const res = await fetch(CLOUD_URL + '/functions/v1/checkout', { method: 'POST', headers: { apikey: CLOUD_KEY, Authorization: 'Bearer ' + (data.session?.access_token || ''), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const json = await res.json().catch(() => ({}));

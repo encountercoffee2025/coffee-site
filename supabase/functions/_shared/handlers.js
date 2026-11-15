@@ -2,7 +2,7 @@
 import { placeOrder, newOrderId, newToken, publicOrder, splitCatalog, mergeCatalog, cancelOrders } from './core.js';
 import { ecpayConfig, mapConfig, paymentForm, periodicForm, cancelPeriod, verifyMac, paymentTypeLabel, refundCredit, inCloseWindow } from './ecpay.js';
 import { newSubscription, periodOrder, publicSubscription, addMonths, taipeiDate } from './subscription.js';
-import { notifyOwner, notifyPaid } from './notify.js';
+import { notifyOwner, notifyPaid, notifyShipped } from './notify.js';
 import { db } from './db.js';
 import { logisticsConfig, createShipment, printForm, shipmentCode, verifyLogisticsMac, pickupNameProblem, pickupPhoneProblem, SUB_TYPES, SENT_CODES, PICKED_UP_CODES } from './logistics.js';
 
@@ -106,12 +106,34 @@ async function logisticsNotice(D, env, params) {
     if (o.history.some(h => h.text === text)) return '1|OK';
     s.code = code; s.status = params.RtnMsg || code; s.updatedAt = at;
     o.history.push({ at, text });
-    if (SENT_CODES.includes(code) && o.status === 'packing') { o.status = 'shipped'; o.history.push({ at, text: '包裹已送達物流中心，狀態自動改為已出貨' }) }
+    const shippedNow = SENT_CODES.includes(code) && o.status === 'packing';
+    if (shippedNow) { o.status = 'shipped'; o.history.push({ at, text: '包裹已送達物流中心，狀態自動改為已出貨' }) }
     if (PICKED_UP_CODES.includes(code) && o.status === 'shipped') { o.status = 'completed'; o.history.push({ at, text: '顧客已取貨，狀態自動改為已完成' }) }
     const saved = await D.update(`orders?id=eq.${id}&version=eq.${row.version}`, { data: o, status: o.status, version: row.version + 1, updated_at: at });
-    if (saved.length) return '1|OK';
+    if (saved.length) {
+      if (shippedNow) await sendShippedNotice(D, env, id).catch(err => console.error('shipped notice', err));
+      return '1|OK';
+    }
   }
   return '0|Retry';
+}
+
+// 出貨通知信：訂單變成「已出貨」時寄一次（後台手動出貨，或物流中心收件後自動出貨）。寄過就不再寄。
+export async function sendShippedNotice(D, env, id) {
+  if (!ID.test(String(id))) return [];
+  const load = async () => (await D.get(`orders?id=eq.${id}&select=id,token,data,version`))[0];
+  const row = await load();
+  if (!row || row.data.status !== 'shipped' || row.data.shippedMailAt) return [];
+  const results = await notifyShipped(row.data, env, row.token);
+  if (!results.length) return results;
+  for (let attempt = 0, cur = row; attempt < 4; attempt++) {
+    if (attempt) cur = await load();
+    const at = new Date().toISOString();
+    const next = { ...cur.data, shippedMailAt: at, history: [...cur.data.history, ...results.map(text => ({ at, text }))] };
+    const saved = await D.update(`orders?id=eq.${id}&version=eq.${cur.version}`, { data: next, version: cur.version + 1, updated_at: at });
+    if (saved.length) return results;
+  }
+  return results;
 }
 
 // 已付款訂單的全額退款。綠界退款不能復原，所以順序是：檢查 → 綠界退款 → 成功才改訂單 → 回補庫存。
@@ -263,6 +285,11 @@ export async function handleCheckout(req, env) {
       await requireAdmin(req, env, D);
       return reply(200, { order: await shipOrder(D, env, String(body.id || ''), body) });
     }
+    // 後台把訂單改成「已出貨」後呼叫：寄出貨通知信給顧客（只寄一次）
+    if (body.action === 'notify-shipped') {
+      await requireAdmin(req, env, D);
+      return reply(200, { results: await sendShippedNotice(D, env, String(body.id || '')) });
+    }
     if (body.action === 'print-shipment') {
       await requireAdmin(req, env, D);
       if (!ID.test(String(body.id))) return reply(404, { error: '找不到這筆訂單' });
@@ -353,7 +380,7 @@ export async function handleEcpay(req, env) {
         else { o.payment = 'paid'; paidNow = true; o.history.push({ at, text: `綠界付款完成（${label}）${params.SimulatePaid === '1' ? '・測試環境模擬付款' : ''}` }) }
       } else return text('1|OK');
     } else o.history.push({ at, text: `綠界付款未完成：${params.RtnMsg || params.RtnCode || '未知原因'}` });
-    if (paidNow) (await notifyPaid(o, label, env)).forEach(t => o.history.push({ at: new Date().toISOString(), text: t }));
+    if (paidNow) (await notifyPaid(o, label, env, row.token)).forEach(t => o.history.push({ at: new Date().toISOString(), text: t }));
     const saved = await D.update(`orders?id=eq.${row.id}&version=eq.${row.version}`, { data: o, status: o.status, payment: o.payment, version: row.version + 1, updated_at: new Date().toISOString() });
     if (saved.length) return text('1|OK');
   }
@@ -388,8 +415,9 @@ async function subscriptionNotice(D, env, params, isPeriod) {
     const saved = await D.update(`subscriptions?id=eq.${row.id}&version=eq.${row.version}`, { data: sub, status: sub.status, version: row.version + 1, updated_at: at });
     if (!saved.length) continue;
     if (order) {
-      (await notifyPaid(order, '信用卡定期定額', env)).forEach(t => order.history.push({ at: new Date().toISOString(), text: t }));
-      await D.insert('orders', { id: order.id, token: newToken(), trade_nos: [], status: order.status, payment: order.payment, data: order });
+      const orderToken = newToken();
+      (await notifyPaid(order, '信用卡定期定額', env, orderToken)).forEach(t => order.history.push({ at: new Date().toISOString(), text: t }));
+      await D.insert('orders', { id: order.id, token: orderToken, trade_nos: [],status: order.status, payment: order.payment, data: order });
     }
     return '1|OK';
   }

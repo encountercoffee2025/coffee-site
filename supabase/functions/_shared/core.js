@@ -1,6 +1,6 @@
 // 伺服器下單：使用與網站相同的 store.js 規則計算價格、運費、庫存與訂單內容，不相信瀏覽器送來的金額。
 import { loadStore } from './store.js';
-import { pickupNameProblem, pickupPhoneProblem } from './logistics.js';
+import { pickupNameProblem, pickupPhoneProblem, shipmentCode, ARRIVED_CODES, PICKED_UP_CODES } from './logistics.js';
 
 // store.js 在瀏覽器使用 window 與 localStorage；伺服器給它一份專用的記憶體版本，不動到全域環境。
 const memory = new Map();
@@ -82,6 +82,9 @@ export function publicOrder(o) {
     id: o.id, createdAt: o.createdAt, status: o.status, payment: o.payment,
     subtotal: o.subtotal, shipping: o.shipping, frozenShipping: o.frozenShipping ?? 0, total: o.total,
     delivery: o.delivery, deliveryLabel: deliveryLabel(o.delivery),
-    items: o.items.map(i => ({ name: lineSpec(i), quantity: i.quantity, price: i.price }))
+    items: o.items.map(i => ({ name: lineSpec(i), quantity: i.quantity, price: i.price })),
+    // 出貨進度：只給持有查詢碼的人看，不含收件人個資
+    tracking: o.tracking || '', storeName: o.store?.name || '',
+    shipment: o.shipment ? { label: o.shipment.label, code: shipmentCode(o.shipment), status: o.shipment.status || '', updatedAt: o.shipment.updatedAt || '', arrived: ARRIVED_CODES.includes(o.shipment.code), pickedUp: PICKED_UP_CODES.includes(o.shipment.code) } : null
   };
 }
