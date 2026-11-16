@@ -77,6 +77,20 @@ export function lineSpec(item) {
 export const deliveryLabel = d => S.deliveryLabels[d] || d;
 
 // 給顧客查詢訂單狀態用：不含 Email、電話、地址等個資以外的內部資料
+// 顧客自行取消（並由綠界全額退款）的條件：已刷卡付款、還沒備貨（新訂單／已確認）、沒有建立寄件單、每支咖啡都還在「準備中」。
+// 回傳 null 代表可以取消，否則回傳不能取消的原因（會顯示給顧客）。
+export function buyerCancelBlock(o) {
+  if (o.payment !== 'paid') return '只有已付款的訂單可以線上取消';
+  if (['shipped', 'completed'].includes(o.status)) return '訂單已出貨，無法取消';
+  if (o.status === 'cancelled') return '訂單已取消';
+  if (o.status === 'packing') return '訂單已開始備貨，無法線上取消；如需協助請來信客服';
+  if (o.shipment) return '已建立寄件單，無法線上取消；如需協助請來信客服';
+  if (o.items.some(i => i.kind !== 'treat' && i.kind !== 'plan' && i.roastStatus && i.roastStatus !== 'preparing')) return '咖啡已開始烘焙，無法取消訂單';
+  if (o.items.some(i => i.kind === 'plan')) return '月費訂購的訂單無法線上取消，請來信客服';
+  if (!o.ecpay?.tradeNo || !o.ecpay?.merchantTradeNo || o.ecpay.simulated) return '這筆訂單無法線上退款，請來信客服';
+  return null;
+}
+
 export function publicOrder(o) {
   return {
     id: o.id, createdAt: o.createdAt, status: o.status, payment: o.payment,
@@ -85,6 +99,8 @@ export function publicOrder(o) {
     items: o.items.map(i => { const coffee = i.kind !== 'treat' && i.kind !== 'plan'; return { name: lineSpec(i), quantity: i.quantity, price: i.price, frozen: !!i.frozen, ...(coffee ? { roast: i.roastStatus || 'preparing' } : {}) }; }),
     // 冷凍點心另寄一箱時的單號（後台填寫）
     frozenTracking: o.frozenTracking || '',
+    // 線上取消：可以取消時 canCancel 為 true；已付款但不能取消時附上原因
+    canCancel: !buyerCancelBlock(o), cancelNote: o.payment === 'paid' && !['cancelled', 'shipped', 'completed'].includes(o.status) ? (buyerCancelBlock(o) || '') : '',
     // 出貨進度：只給持有查詢碼的人看，不含收件人個資
     tracking: o.tracking || '', storeName: o.store?.name || '',
     shipment: o.shipment ? { label: o.shipment.label, code: shipmentCode(o.shipment), status: o.shipment.status || '', updatedAt: o.shipment.updatedAt || '', arrived: ARRIVED_CODES.includes(o.shipment.code), pickedUp: PICKED_UP_CODES.includes(o.shipment.code) } : null

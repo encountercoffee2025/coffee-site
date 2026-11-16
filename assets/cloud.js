@@ -149,6 +149,7 @@
     url: CLOUD_URL, key: CLOUD_KEY, translate, contentCache: CONTENT_CACHE, pause: () => { paused = true }, okImage, readText, writeText, cleanStyle, applyStyle, uploadImage, getContent: () => content, setContent: c => { content = c },
     checkout: input => callCheckout('POST', { action: 'create', ...input }),
     repay: (id, token) => callCheckout('POST', { action: 'pay', id, token }),
+    cancelOrder: (id, token) => callCheckout('POST', { action: 'cancel-order', id, token }),
     orderStatus: (id, token) => callCheckout('GET', null, `?id=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`),
     lookupOrder: (id, phone) => callCheckout('POST', { action: 'lookup-order', id, phone }),
     emailOrders: email => callCheckout('POST', { action: 'email-orders', email }),

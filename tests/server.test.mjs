@@ -625,6 +625,49 @@ await check('refund: a cancelled order awaiting refund is refunded without resto
   assert.equal(tables.orders[0].data.payment, 'refunded');
 });
 
+// ===== 顧客自行取消（咖啡開始烘焙前，綠界全額退款） =====
+const buyerCancel = (id, token, env = PRODENV) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://encountercoffee2025.com' }, body: JSON.stringify({ action: 'cancel-order', id, token }) }), env);
+const buyerView = async (id, token, env = PRODENV) => (await (await handleCheckout(new Request(`https://demo.supabase.co/functions/v1/checkout?id=${id}&t=${token}`, { method: 'GET', headers: { origin: 'https://encountercoffee2025.com' } }), env)).json()).order;
+
+await check('buyer cancel: allowed while coffee is preparing; refunds via ECPay, cancels and restocks once; wrong token refused', async () => {
+  reset(); doAction = { N: true };
+  const start = stockOf();
+  const { orderId, token } = await paidOrder();
+  let view = await buyerView(orderId, token);
+  assert.equal(view.canCancel, true); assert.equal(view.items[0].roast, 'preparing');
+  assert.equal((await buyerCancel(orderId, 'x'.repeat(token.length))).status, 404);
+  assert.equal(doActions(), '', 'no refund with a wrong token');
+  const res = await buyerCancel(orderId, token);
+  assert.equal(res.status, 200, JSON.stringify(await res.clone().json()));
+  const o = tables.orders[0].data;
+  assert.equal(o.status, 'cancelled'); assert.equal(o.payment, 'refunded'); assert.equal(stockOf(), start);
+  assert.ok(o.history.some(h => h.text.startsWith('顧客自行取消訂單並退款')));
+  assert.equal(doActions(), 'N');
+  view = await buyerView(orderId, token);
+  assert.equal(view.canCancel, false); assert.equal(view.cancelNote, '');
+  assert.equal((await buyerCancel(orderId, token)).status, 200, 'a second click is harmless');
+  assert.equal(doActions(), 'N');
+});
+
+await check('buyer cancel: refused once coffee is roasting, the order is packing or a shipping label exists', async () => {
+  reset(); doAction = { N: true };
+  const { orderId, token } = await paidOrder();
+  const row = tables.orders.find(r => r.id === orderId);
+  row.data.items[0].roastStatus = 'roasting';
+  let view = await buyerView(orderId, token);
+  assert.equal(view.canCancel, false); assert.match(view.cancelNote, /開始烘焙/);
+  let res = await buyerCancel(orderId, token);
+  assert.equal(res.status, 409); assert.match((await res.json()).error, /開始烘焙/);
+  row.data.items[0].roastStatus = 'preparing'; row.data.status = 'packing';
+  assert.match((await (await buyerCancel(orderId, token)).json()).error, /備貨/);
+  row.data.status = 'confirmed'; row.data.shipment = { id: '1', label: '7-ELEVEN 交貨便' };
+  assert.match((await (await buyerCancel(orderId, token)).json()).error, /寄件單/);
+  delete row.data.shipment;
+  assert.equal((await buyerView(orderId, token)).canCancel, true, 'confirmed with preparing coffee can still be cancelled');
+  assert.equal(doActions(), '', 'ECPay is never called in any refused case');
+  assert.equal(row.data.payment, 'paid');
+});
+
 // ===== 7-ELEVEN／全家寄件單 =====
 const LSTAGE = { hashKey: 'XBERn1YOvpM9nfZc', hashIV: 'h1ONHk4P4yqbl5LK' };
 const shipReq = (body, auth = ADMIN, env = ENV) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://encountercoffee2025.com', ...(auth ? { authorization: auth } : {}) }, body: JSON.stringify(body) }), env);

@@ -1,5 +1,5 @@
 // 兩個 Edge Function 的處理邏輯（index.ts 只負責把請求交給這裡，Node 測試也直接呼叫這裡）。
-import { placeOrder, newOrderId, newToken, publicOrder, splitCatalog, mergeCatalog, cancelOrders } from './core.js';
+import { placeOrder, newOrderId, newToken, publicOrder, splitCatalog, mergeCatalog, cancelOrders, buyerCancelBlock } from './core.js';
 import { ecpayConfig, mapConfig, paymentForm, periodicForm, cancelPeriod, verifyMac, paymentTypeLabel, refundCredit, inCloseWindow } from './ecpay.js';
 import { newSubscription, periodOrder, publicSubscription, addMonths, taipeiDate } from './subscription.js';
 import { notifyOwner, notifyPaid, notifyShipped, notifyOrderList } from './notify.js';
@@ -137,7 +137,7 @@ export async function sendShippedNotice(D, env, id) {
 }
 
 // 已付款訂單的全額退款。綠界退款不能復原，所以順序是：檢查 → 綠界退款 → 成功才改訂單 → 回補庫存。
-export async function refundOrder(D, cfg, id, now = new Date()) {
+export async function refundOrder(D, cfg, id, now = new Date(), opts = {}) {
   const fail = (status, message) => Object.assign(new Error(message), { status });
   if (!ID.test(id)) throw fail(404, '找不到這筆訂單');
   const load = async () => (await D.get(`orders?id=eq.${id}&select=id,data,version`))[0];
@@ -145,6 +145,8 @@ export async function refundOrder(D, cfg, id, now = new Date()) {
   if (!first) throw fail(404, '找不到這筆訂單');
   const o = first.data;
   if (o.payment === 'refunded') return o;
+  // 顧客自行取消：先檢查條件（咖啡已開始烘焙、已備貨、已建寄件單都不行）
+  if (opts.buyer) { const why = buyerCancelBlock(o); if (why) throw fail(409, why) }
   const cancellable = o.payment === 'paid' && ['new', 'confirmed', 'packing'].includes(o.status);
   if (!cancellable && !(o.payment === 'refund_pending' && o.status === 'cancelled')) {
     throw fail(409, ['shipped', 'completed'].includes(o.status) ? '已出貨的訂單請先處理退貨，再到綠界後台退款' : '只有已收款、尚未出貨的訂單可以退款');
@@ -167,7 +169,7 @@ export async function refundOrder(D, cfg, id, now = new Date()) {
     // 退款期間若訂單剛好被改成已出貨，只記錄退款、不改出貨狀態也不回補庫存
     const open = ['new', 'confirmed', 'packing'].includes(cur.status), restock = open && cur.reserved;
     const next = { ...cur, status: open ? 'cancelled' : cur.status, payment: 'refunded', reserved: open ? false : cur.reserved, history: [...cur.history] };
-    if (open) next.history.push({ at, text: '後台取消訂單並退款' + (restock ? '，釋放庫存' : '') });
+    if (open) next.history.push({ at, text: (opts.buyer ? '顧客自行取消訂單並退款' : '後台取消訂單並退款') + (restock ? '，釋放庫存' : '') });
     next.history.push({ at, text: `綠界全額退款 NT$ ${cur.total}：${method}` });
     const saved = await D.update(`orders?id=eq.${id}&version=eq.${row.version}`, { data: next, status: next.status, payment: next.payment, version: row.version + 1, updated_at: at });
     if (!saved.length) continue;
@@ -321,6 +323,12 @@ export async function handleCheckout(req, env) {
     if (body.action === 'refund-order') {
       await requireAdmin(req, env, D);
       return reply(200, { order: await refundOrder(D, cfg, String(body.id || '')) });
+    }
+
+    // 顧客在訂單頁自行取消：憑訂單編號＋查詢碼，符合條件才請綠界全額退款
+    if (body.action === 'cancel-order') {
+      const row = await findOrder(D, String(body.id || ''), String(body.token || ''));
+      return reply(200, { order: publicOrder(await refundOrder(D, cfg, row.id, new Date(), { buyer: true })) });
     }
 
     // 後台建立 7-ELEVEN／全家寄件單，與列印託運單
