@@ -229,6 +229,7 @@ window.COFFEE_EN = {
   "常溫運費": "Room-temp shipping",
   "冷凍運費": "Frozen shipping",
   "免運": "Free",
+  "運費與免運說明": "Shipping & free-shipping details",
   "7-11 冷凍取貨": "7-11 frozen pickup",
   "全家冷凍取貨": "FamilyMart frozen pickup",
   "黑貓冷凍宅配": "Frozen home delivery (T-Cat)",
