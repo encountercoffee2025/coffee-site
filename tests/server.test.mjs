@@ -625,6 +625,34 @@ await check('refund: a cancelled order awaiting refund is refunded without resto
   assert.equal(tables.orders[0].data.payment, 'refunded');
 });
 
+await check('frozen parcel: own delivery method; same chain reuses the store, other chain needs its own store, home needs an address', async () => {
+  reset();
+  const FAMI = { id: '006598', name: '全家深坑店', address: '新北市深坑區深坑街 1 號', type: 'FAMIC2C' };
+  const ask = async extra => { const r = await post({ action: 'create', cart, customer, delivery: '711', ...extra }); return { status: r.status, body: await r.json() } };
+  let r = await ask({});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  let o = tables.orders.at(-1).data;
+  assert.equal(o.frozenDelivery, '711', 'defaults to the room-temp chain'); assert.equal(o.frozenStore, undefined, 'same store, not copied');
+  let view = (await (await get(`?id=${r.body.orderId}&t=${r.body.token}`)).json()).order;
+  assert.equal(view.frozenDeliveryLabel, '7-11 冷凍取貨'); assert.equal(view.frozenStoreName, '深坑門市');
+  r = await ask({ frozenDelivery: 'family' });
+  assert.equal(r.status, 400); assert.match(r.body.error, /選擇取貨門市/);
+  r = await ask({ frozenDelivery: 'family', frozenStore: FAMI });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  o = tables.orders.at(-1).data;
+  assert.equal(o.frozenDelivery, 'family'); assert.equal(o.frozenStore.id, '006598'); assert.equal(o.store.id, '131386');
+  r = await ask({ frozenDelivery: 'home' });
+  assert.equal(r.status, 400); assert.match(r.body.error, /冷凍配送地址/);
+  r = await ask({ frozenDelivery: 'home', frozenAddress: '台北市信義區市府路 1 號' });
+  assert.equal(r.status, 200);
+  o = tables.orders.at(-1).data;
+  assert.equal(o.frozenAddress, '台北市信義區市府路 1 號');
+  view = (await (await get(`?id=${r.body.orderId}&t=${r.body.token}`)).json()).order;
+  assert.equal(view.frozenDeliveryLabel, '黑貓冷凍宅配'); assert.ok(!JSON.stringify(view).includes('市府路'), 'address stays private');
+  r = await ask({ frozenDelivery: 'boat' });
+  assert.equal(r.status, 400); assert.match(r.body.error, /冷凍配送方式/);
+});
+
 // ===== 顧客自行取消（咖啡開始烘焙前，綠界全額退款） =====
 const buyerCancel = (id, token, env = PRODENV) => handleCheckout(new Request('https://demo.supabase.co/functions/v1/checkout', { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://encountercoffee2025.com' }, body: JSON.stringify({ action: 'cancel-order', id, token }) }), env);
 const buyerView = async (id, token, env = PRODENV) => (await (await handleCheckout(new Request(`https://demo.supabase.co/functions/v1/checkout?id=${id}&t=${token}`, { method: 'GET', headers: { origin: 'https://encountercoffee2025.com' } }), env)).json()).order;

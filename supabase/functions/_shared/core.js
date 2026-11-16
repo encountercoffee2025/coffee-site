@@ -46,13 +46,25 @@ export function placeOrder(catalog, input, id) {
     else S.addCart(String(line?.productId ?? ''), String(line?.sku ?? ''), quantity, line?.grind ? String(line.grind) : undefined, line?.roast ? String(line.roast) : undefined);
   }
   const c = input.customer || {};
-  const store = pickedStore(input);
-  if (store) { const problem = pickupNameProblem(c.name) || pickupPhoneProblem(c.phone); if (problem) throw new Error(problem) }
+  const delivery = String(input.delivery || ''), store = pickedStore(input);
+  // 冷凍箱可以選和常溫不同的寄送方式：超商冷凍要另選門市（同一家超商就沿用常溫門市），黑貓冷凍宅配要有地址
+  const hasFrozen = S.cartDetails(undefined, S.deliveries.includes(delivery) ? delivery : '711').hasFrozen;
+  const frozenDelivery = hasFrozen ? String(input.frozenDelivery || delivery) : undefined;
+  if (hasFrozen && !S.frozenDeliveries.includes(frozenDelivery)) throw new Error('請選擇冷凍配送方式');
+  let frozenStore = null, frozenAddress = '';
+  if (hasFrozen && frozenDelivery !== 'home') frozenStore = frozenDelivery === delivery && store ? store : pickedStore({ delivery: frozenDelivery, store: input.frozenStore });
+  if (hasFrozen && frozenDelivery === 'home' && delivery !== 'home') {
+    frozenAddress = String(input.frozenAddress ?? '').replace(/[<>\r\n]/g, ' ').trim().slice(0, 300);
+    if (!frozenAddress) throw new Error('請填寫冷凍配送地址');
+  }
+  if (store || frozenStore) { const problem = pickupNameProblem(c.name) || pickupPhoneProblem(c.phone); if (problem) throw new Error(problem) }
   const order = S.createOrder(
     { name: String(c.name ?? '').trim(), email: String(c.email ?? '').trim(), phone: String(c.phone ?? '').trim(), address: store ? `${store.name}（店號 ${store.id}）${store.address}` : String(c.address ?? '').trim() },
-    { delivery: String(input.delivery || ''), note: String(input.note || ''), id, notes: '', historyText: '建立訂單並保留庫存，等待付款' }
+    { delivery, frozenDelivery, note: String(input.note || ''), id, notes: '', historyText: '建立訂單並保留庫存，等待付款' }
   );
   if (store) order.store = store;
+  if (frozenStore && frozenStore !== store) order.frozenStore = frozenStore;
+  if (frozenAddress) order.frozenAddress = frozenAddress;
   return { order, catalog: S.cloudCatalog() };
 }
 
@@ -99,6 +111,8 @@ export function publicOrder(o) {
     items: o.items.map(i => { const coffee = i.kind !== 'treat' && i.kind !== 'plan'; return { name: lineSpec(i), quantity: i.quantity, price: i.price, frozen: !!i.frozen, ...(coffee ? { roast: i.roastStatus || 'preparing' } : {}) }; }),
     // 冷凍點心另寄一箱時的單號（後台填寫）
     frozenTracking: o.frozenTracking || '',
+    frozenDelivery: o.frozenDelivery || '', frozenDeliveryLabel: o.frozenDelivery ? S.frozenDeliveryLabels[o.frozenDelivery] || '' : '',
+    frozenStoreName: o.frozenStore?.name || (o.frozenDelivery && o.frozenDelivery === o.delivery && o.frozenDelivery !== 'home' ? o.store?.name || '' : ''),
     // 線上取消：可以取消時 canCancel 為 true；已付款但不能取消時附上原因
     canCancel: !buyerCancelBlock(o), cancelNote: o.payment === 'paid' && !['cancelled', 'shipped', 'completed'].includes(o.status) ? (buyerCancelBlock(o) || '') : '',
     // 出貨進度：只給持有查詢碼的人看，不含收件人個資

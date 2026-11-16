@@ -129,6 +129,16 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .cart-group-head strong{font-size:15px;margin-left:4px}
 .cart-group-treat .cart-group-head{border-left-color:#6fa8c9;background:rgba(111,168,201,.14)}
 .cart-group .format-note{margin-top:12px}
+.order-summary .fresh-roast-note{margin:18px 0 0;padding:14px 16px;border-left:3px solid #b9874f;border-radius:6px;background:rgba(185,135,79,.1);font-size:13px;line-height:1.75}
+.fresh-roast-note .frn-title{display:block;margin-bottom:6px;font-size:14px;font-weight:600;letter-spacing:.04em}
+.order-summary .fresh-roast-note p{display:block;margin:0;padding:0;border:0}
+.order-summary .fresh-roast-note .frn-rule{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(185,135,79,.45);color:rgb(var(--ink))}
+/* 結帳：常溫與冷凍配送區塊用不同底色（與購物車分箱同色系） */
+.ship-zone{margin:18px 0;padding:14px 16px 16px;border-left:4px solid #b9874f;border-radius:6px;background:rgba(185,135,79,.1)}
+.ship-zone>fieldset{margin-top:0;margin-bottom:0}
+.ship-zone-frozen{border-left-color:#6fa8c9;background:rgba(111,168,201,.13)}
+.ship-zone-frozen .frozen-note{background:rgba(255,255,255,.6)}
+.ship-zone legend{font-weight:600}
 .treat-temp{display:inline-block;margin:0 0 10px;padding:3px 10px;border-radius:999px;font-size:12px;background:rgba(185,135,79,.14)}
 .treat-temp.is-either{background:linear-gradient(90deg,rgba(185,135,79,.16),rgba(111,168,201,.2))}
 .treat-temp.is-frozen{background:rgba(111,168,201,.18)}
