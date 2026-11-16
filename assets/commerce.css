@@ -71,6 +71,13 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .order-status-items{list-style:none;padding:0;margin:18px auto;max-width:520px;text-align:left}
 .order-status-items li{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.08)}
 .order-status-items .summary-total{font-weight:600;border-bottom:0}
+.order-status-items .order-ship-group{flex-wrap:wrap;align-items:baseline;padding-top:16px;font-weight:600;font-size:14px;letter-spacing:.04em}
+.order-ship-group small{font-weight:400;color:rgb(var(--muted))}.order-ship-group small strong{color:rgb(var(--ink));letter-spacing:.04em}
+.order-status-items .order-fee{color:rgb(var(--muted));font-size:14px}
+.ship-icon{display:inline-flex;align-items:center;justify-content:center;gap:3px;min-width:34px;height:18px;margin-right:8px;padding:0 5px;border-radius:4px;font-style:normal;font-size:11px;font-weight:700;letter-spacing:0;line-height:1;vertical-align:1px;color:#fff;white-space:nowrap}
+.ship-711{background:#00704a;box-shadow:inset 0 -3px 0 #f58220}.ship-family{background:#0a8a6e;box-shadow:inset 0 -3px 0 #2a7ec1}.ship-icon.ship-frozen{box-shadow:inset 0 -3px 0 #8fd3f4}.ship-home{background:none;min-width:0;padding:0;font-size:15px}
+.roast-badge{display:inline-block;margin-left:6px;padding:1px 9px;border-radius:999px;font-style:normal;font-size:12px;line-height:1.7;white-space:nowrap;background:#efe7da;color:#6b4a2f}
+.roast-badge.roast-roasting{background:#f6dfc0;color:#8a4b12}.roast-badge.roast-roasted{background:#e1eddb;color:#35602d}
 /* 查詢訂單頁 */
 .lookup-page{max-width:560px;margin:48px auto;text-align:center}
 .lookup-page h1{font-size:32px;margin:6px 0 10px}

@@ -82,7 +82,9 @@ export function publicOrder(o) {
     id: o.id, createdAt: o.createdAt, status: o.status, payment: o.payment,
     subtotal: o.subtotal, shipping: o.shipping, frozenShipping: o.frozenShipping ?? 0, total: o.total,
     delivery: o.delivery, deliveryLabel: deliveryLabel(o.delivery),
-    items: o.items.map(i => ({ name: lineSpec(i), quantity: i.quantity, price: i.price })),
+    items: o.items.map(i => { const coffee = i.kind !== 'treat' && i.kind !== 'plan'; return { name: lineSpec(i), quantity: i.quantity, price: i.price, frozen: !!i.frozen, ...(coffee ? { roast: i.roastStatus || 'preparing' } : {}) }; }),
+    // 冷凍點心另寄一箱時的單號（後台填寫）
+    frozenTracking: o.frozenTracking || '',
     // 出貨進度：只給持有查詢碼的人看，不含收件人個資
     tracking: o.tracking || '', storeName: o.store?.name || '',
     shipment: o.shipment ? { label: o.shipment.label, code: shipmentCode(o.shipment), status: o.shipment.status || '', updatedAt: o.shipment.updatedAt || '', arrived: ARRIVED_CODES.includes(o.shipment.code), pickedUp: PICKED_UP_CODES.includes(o.shipment.code) } : null
