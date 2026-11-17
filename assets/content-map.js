@@ -71,8 +71,7 @@ window.COFFEE_CONTENT_MAP = [
       ['story.aik', 'AI 挑豆英文小標'], ['story.ait', 'AI 挑豆標題'], ['story.aip', 'AI 挑豆說明'],
       ['story.step1k', '第 1 道英文小字'], ['story.step1t', '第 1 道名稱'], ['story.step1p', '第 1 道說明'],
       ['story.step2k', '第 2 道英文小字'], ['story.step2t', '第 2 道名稱'], ['story.step2p', '第 2 道說明'],
-      ['story.step3k', '第 3 道英文小字'], ['story.step3t', '第 3 道名稱'], ['story.step3p', '第 3 道說明'],
-      ['story.step4k', '第 4 道英文小字'], ['story.step4t', '第 4 道名稱'], ['story.step4p', '第 4 道說明']
+      ['story.step3k', '第 3 道英文小字'], ['story.step3t', '第 3 道名稱'], ['story.step3p', '第 3 道說明']
     ] },
     { title: '03 烘焙專研', items: [
       ['story.roastk', '英文小標'], ['story.roastt', '標題'], ['story.roastp', '說明'], ['story.roastsub', '烘焙機上方小標'], ['story.stage1', '展示區：X3 標籤'], ['story.stage2', '展示區：RX700 標籤'],
