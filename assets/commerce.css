@@ -216,3 +216,29 @@ fieldset.content-item{border:1px solid #d9ddd4;padding:14px 16px;margin:0 0 14px
 .fresh-roast-note .frn-title{color:#7d5229}
 .order-summary .fresh-roast-note .frn-rule{border-top-color:rgba(154,104,56,.3)}
 @media(max-width:767px){.order-summary{padding:22px 18px 18px}.order-summary .summary-total strong{font-size:24px}}
+/* 購物車手機版：數量、移除、小計同一列，標題斷行平衡 */
+.page-intro h1{text-wrap:balance}
+@media(max-width:767px){
+.cart-line{position:relative;padding:20px 0;gap:14px;align-items:start}
+.cart-line h2{font-size:16px;margin-bottom:6px;line-height:1.4}
+.cart-line p{line-height:1.6}
+.cart-line label{margin-top:10px;gap:8px}
+.cart-line input{width:58px;padding:7px 8px;min-height:40px;text-align:center}
+.cart-line button{margin-left:10px;padding:8px 0}
+.cart-line>strong{position:absolute;right:0;bottom:20px;line-height:40px;margin:0;font-size:15px}
+.cart-group-head{flex-wrap:nowrap;align-items:center}
+.cart-group-head h3{min-width:0;row-gap:2px}
+.checkout-layout{grid-template-columns:minmax(0,1fr)}
+.customer-form fieldset{min-width:0}
+.ship-zone .grind-options{grid-template-columns:minmax(0,1fr)}
+.ship-zone .grind-options button,.ship-zone .grind-options button[aria-pressed=true]{min-width:0;white-space:normal;flex-wrap:wrap;column-gap:10px;row-gap:2px}
+.ship-zone .grind-options .opt-name{flex:1 1 10em;min-width:0}
+.ship-zone .grind-options .opt-fee{flex:none}
+}
+@media(max-width:359px){.cart-line>strong{position:static;grid-column:2;justify-self:end;line-height:1.4;margin-top:-4px}}
+@media(max-width:399px){html[lang=en] .cart-line>strong{position:static;grid-column:2;justify-self:end;line-height:1.4;margin-top:-4px}}
+/* 備註＋前往付款：手機放在訂單明細下方，桌機接在訂購資料卡片下 */
+.checkout-submit{background:rgb(var(--card));padding:0 25px 25px;margin-top:-45px}
+.checkout-submit>p{font-size:11px;color:rgb(var(--muted))}
+.checkout-submit .full-button{margin-bottom:12px}
+@media(max-width:767px){.checkout-submit{margin-top:0;padding:22px 20px 18px;border-radius:16px;border:1px solid rgba(154,104,56,.18)}.checkout-submit .gift-box{margin-top:0;padding-top:0;border-top:0}}
