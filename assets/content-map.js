@@ -65,7 +65,7 @@ window.COFFEE_CONTENT_MAP = [
   ] },
   { id: 'story.html', name: '品牌故事', sources: ['story.html'], groups: [
     { title: '開頭與章節選單', items: [['story.kicker', '英文小標'], ['story.title', '大標題'], ['story.intro', '介紹'], ['story.nav1', '章節選單 1'], ['story.nav2', '章節選單 2'], ['story.nav3', '章節選單 3']] },
-    { title: '01 品牌故事', items: [['story.img', '圖片'], ['story.s1k', '英文小標'], ['story.s1t', '標題'], ['story.s1p', '第 1 段'], ['story.s2p', '第 2 段']] },
+    { title: '01 品牌故事', items: [['story.img', '圖片'], ['story.s1k', '英文小標'], ['story.s1t', '標題'], ['story.b1', '第 1 段小標'], ['story.s1p', '第 1 段'], ['story.b2', '第 2 段小標'], ['story.s2p', '第 2 段'], ['story.b3', '轉折句小標'], ['story.s1q', '轉折句'], ['story.s1c1t', '卡片 1 標題'], ['story.s1c1p', '卡片 1 說明'], ['story.s1c2t', '卡片 2 標題'], ['story.s1c2p', '卡片 2 說明'], ['story.s3p', '結尾（品牌名稱）']] },
     { title: '02 乾淨的豆・AI 挑豆', items: [
       ['story.cleank', '英文小標'], ['story.cleant', '標題'], ['story.cleanp', '說明'],
       ['story.aik', 'AI 挑豆英文小標'], ['story.ait', 'AI 挑豆標題'], ['story.aip', 'AI 挑豆說明'],
